@@ -11,7 +11,8 @@ let db: ReturnType<typeof drizzle>;
 beforeAll(async () => {
   const client = new PGlite();
   db = drizzle(client, { schema });
-  await pushSchema(schema, db as any);
+  const result = await pushSchema(schema, db as any);
+  await result.apply();
 });
 
 describe('users table', () => {
@@ -111,7 +112,7 @@ describe('insert/select round-trips', () => {
     expect(user.walletAddress).toBe('0xABC123');
     expect(user.displayName).toBe('Test User');
     expect(user.worldId).toBeNull();
-    expect(user.autoApproveUsd).toBe('25');
+    expect(user.autoApproveUsd).toBe('25.00');
 
     const [contact] = await db.insert(contacts).values({
       ownerUserId: user.id,

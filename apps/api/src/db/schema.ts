@@ -1,0 +1,38 @@
+import { pgTable, uuid, text, numeric, timestamp, boolean } from 'drizzle-orm/pg-core';
+
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  walletAddress: text('wallet_address').notNull().unique(),
+  worldId: text('world_id'),
+  displayName: text('display_name').notNull(),
+  autoApproveUsd: numeric('auto_approve_usd', { precision: 10, scale: 2 }).notNull().default('25'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const contacts = pgTable('contacts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerUserId: uuid('owner_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  walletAddress: text('wallet_address').notNull(),
+  displayName: text('display_name').notNull(),
+  genieUserId: uuid('genie_user_id').references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const transactions = pgTable('transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  senderUserId: uuid('sender_user_id').notNull().references(() => users.id),
+  recipientWallet: text('recipient_wallet').notNull(),
+  amountUsd: numeric('amount_usd', { precision: 10, scale: 2 }).notNull(),
+  txHash: text('tx_hash'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const debts = pgTable('debts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerUserId: uuid('owner_user_id').notNull().references(() => users.id),
+  counterpartyWallet: text('counterparty_wallet').notNull(),
+  amountUsd: numeric('amount_usd', { precision: 10, scale: 2 }).notNull(),
+  description: text('description'),
+  settled: boolean('settled').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
