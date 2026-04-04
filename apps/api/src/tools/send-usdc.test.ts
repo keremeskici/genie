@@ -18,6 +18,15 @@ vi.mock('@genie/db', () => ({
   and: vi.fn(),
 }));
 
+// Mock categorize module
+vi.mock('./categorize', () => ({
+  inferCategory: vi.fn((desc: string | null | undefined) => {
+    if (!desc) return 'transfers';
+    if (desc.toLowerCase().includes('dinner')) return 'food';
+    return 'transfers';
+  }),
+}));
+
 // Mock require-verified
 vi.mock('./require-verified', () => ({
   requireVerified: vi.fn(),
@@ -27,6 +36,7 @@ import { createSendUsdcTool } from './send-usdc';
 import { executeOnChainTransfer } from '../chain/transfer';
 import { db } from '@genie/db';
 import { requireVerified } from './require-verified';
+import { inferCategory } from './categorize';
 
 const mockExecuteOnChainTransfer = executeOnChainTransfer as ReturnType<typeof vi.fn>;
 const mockRequireVerified = requireVerified as ReturnType<typeof vi.fn>;
@@ -167,5 +177,55 @@ describe('createSendUsdcTool', () => {
       error: 'TRANSFER_FAILED',
       message: expect.stringContaining('Blockchain rejected tx'),
     });
+  });
+
+  it('stores category "food" when description is "dinner" on confirmed transaction', async () => {
+    const insertValues = vi.fn().mockResolvedValue([]);
+    (db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values: insertValues });
+
+    const tool = createSendUsdcTool(BASE_USER_ID, BASE_USER_CONTEXT);
+    await tool.execute(
+      { recipientAddress: RECIPIENT, amountUsd: 10, description: 'dinner' },
+      { messages: [], toolCallId: 'test' },
+    );
+
+    expect(inferCategory).toHaveBeenCalledWith('dinner');
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'food', source: 'genie_send' }),
+    );
+  });
+
+  it('stores category "transfers" when no description provided on confirmed transaction', async () => {
+    const insertValues = vi.fn().mockResolvedValue([]);
+    (db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values: insertValues });
+
+    const tool = createSendUsdcTool(BASE_USER_ID, BASE_USER_CONTEXT);
+    await tool.execute(
+      { recipientAddress: RECIPIENT, amountUsd: 10 },
+      { messages: [], toolCallId: 'test' },
+    );
+
+    expect(inferCategory).toHaveBeenCalledWith(undefined);
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'transfers', source: 'genie_send' }),
+    );
+  });
+
+  it('stores category and source on pending transaction too', async () => {
+    const updateSet = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) });
+    (db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: updateSet });
+    const insertReturning = vi.fn().mockResolvedValue([{ id: 'pending-cat-test' }]);
+    const insertValues = vi.fn().mockReturnValue({ returning: insertReturning });
+    (db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values: insertValues });
+
+    const tool = createSendUsdcTool(BASE_USER_ID, BASE_USER_CONTEXT);
+    await tool.execute(
+      { recipientAddress: RECIPIENT, amountUsd: 100, description: 'dinner' }, // 100 > 25 → pending
+      { messages: [], toolCallId: 'test' },
+    );
+
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'food', source: 'genie_send', status: 'pending' }),
+    );
   });
 });

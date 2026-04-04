@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { requireVerified } from './require-verified';
 import { executeOnChainTransfer } from '../chain/transfer';
+import { inferCategory } from './categorize';
 import { db, transactions, eq, and } from '@genie/db';
 import type { UserContext } from '../agent/context';
 
@@ -24,8 +25,9 @@ export function createSendUsdcTool(userId: string, userContext: UserContext) {
     inputSchema: z.object({
       recipientAddress: z.string().describe('Resolved 0x wallet address of recipient'),
       amountUsd: z.number().positive().describe('Amount in USD to send'),
+      description: z.string().optional().describe('Transaction context from conversation, e.g. "dinner", "rent". Used for spending categorization.'),
     }),
-    execute: async ({ recipientAddress, amountUsd }) => {
+    execute: async ({ recipientAddress, amountUsd, description }) => {
       // Gate: require World ID verification (per Phase 3 guard)
       const gateError = requireVerified(userContext);
       if (gateError) return gateError;
@@ -46,6 +48,8 @@ export function createSendUsdcTool(userId: string, userContext: UserContext) {
             amountUsd: amountUsd.toFixed(2),
             txHash: executeTxHash,
             status: 'confirmed',
+            category: inferCategory(description),  // D-01: AI-inferred at creation
+            source: 'genie_send',                  // D-06
           });
 
           return {
@@ -74,6 +78,8 @@ export function createSendUsdcTool(userId: string, userContext: UserContext) {
               amountUsd: amountUsd.toFixed(2),
               status: 'pending',
               expiresAt: new Date(Date.now() + PENDING_EXPIRY_MS),
+              category: inferCategory(description),  // categorize even pending txs
+              source: 'genie_send',
             })
             .returning();
 
