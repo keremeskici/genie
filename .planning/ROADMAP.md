@@ -13,7 +13,7 @@ Genie is built component-by-component in 6 phases optimized for a 36-hour hackat
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Agent Infra** - 0G Compute Adapter + Vercel AI SDK loop with dual-model routing (completed 2026-04-04)
-- [ ] **Phase 2: Data Layer** - Supabase + Drizzle schemas, 0G Storage KV for agent memory (gap closure in progress)
+- [x] **Phase 2: Data Layer** - Supabase + Drizzle schemas, 0G Storage KV for agent memory (completed 2026-04-04)
 - [ ] **Phase 3: Identity** - World ID 4.0 verification and World Agent Kit classification
 - [ ] **Phase 4: Financial Ops** - Smart contracts, balance check, send USDC, contact resolution
 - [ ] **Phase 5: Cross-Chain & Social** - Arc CCTP deposits, spending tracking, debt management
@@ -60,7 +60,10 @@ Plans:
   2. A user who completes World ID 4.0 verification gets their proof validated server-side and unlocks send money and debt tracking
   3. The server rejects gated actions (send, debt) with a clear error when presented with no or invalid World ID proof
   4. World Agent Kit correctly labels agents acting on behalf of verified users as human-backed and all others as bot
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 03-01-PLAN.md — Verify endpoint + UserContext isVerified extension + cache invalidation
+- [ ] 03-02-PLAN.md — Agent Kit classification, system prompt verification awareness, gating guard utility
 
 ### Phase 4: Financial Ops
 **Goal**: Users can check their USDC balance and send USDC to contacts or addresses through natural language — backed by deployed smart contracts
@@ -106,8 +109,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (backend). Phase 6 ru
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Agent Infra | 2/2 | Complete   | 2026-04-04 |
-| 2. Data Layer | 3/4 | Gap closure | - |
-| 3. Identity | 0/? | Not started | - |
+| 2. Data Layer | 4/4 | Complete   | 2026-04-04 |
+| 3. Identity | 0/2 | Planning complete | - |
 | 4. Financial Ops | 0/? | Not started | - |
 | 5. Cross-Chain & Social | 0/? | Not started | - |
 | 6. Mini App Shell | 0/? | Not started | - |
