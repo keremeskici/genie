@@ -5,6 +5,7 @@ import { DefaultChatTransport } from 'ai';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { triggerMiniKitPay, requestMiniKitPermissions } from '@/lib/minikit';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ContactList, parseContactList, type ContactData } from '../ContactCard';
@@ -34,6 +35,7 @@ export const ChatInterface = () => {
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const permissionsRequested = useRef(false);
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: `${API_URL}/api/chat` }),
@@ -60,10 +62,53 @@ export const ChatInterface = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, status]);
 
+  // Detect payment confirmation messages from agent and trigger MiniKit Pay (D-12)
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== 'assistant') return;
+
+    const textContent = lastMsg.parts
+      ?.filter((p: { type: string }) => p.type === 'text')
+      .map((p: { type: string; text?: string }) => p.text ?? '')
+      .join('');
+
+    if (!textContent) return;
+
+    // Detect payment confirmation JSON fence from agent
+    const jsonMatch = textContent.match(/```json\s*\n([\s\S]*?)\n```/);
+    if (!jsonMatch) return;
+
+    try {
+      const parsed = JSON.parse(jsonMatch[1]);
+      if (parsed.type === 'payment_confirmation' && parsed.to && parsed.amount) {
+        triggerMiniKitPay({
+          to: parsed.to,
+          amountUsdc: parsed.amount,
+          description: parsed.description ?? `Send ${parsed.amount} USDC`,
+        }).then((result) => {
+          if (result?.success) {
+            console.log('[minikit] payment success:', result.transactionId);
+          }
+        });
+      }
+    } catch { /* not valid JSON — ignore */ }
+  }, [messages]);
+
   const handleSend = async () => {
     if (!input.trim() || (status !== 'ready' && status !== 'error')) return;
     const text = input.trim();
     setInput('');
+
+    // Request wallet address and user profile on first message (D-15)
+    if (!permissionsRequested.current) {
+      permissionsRequested.current = true;
+      // Fire-and-forget — don't block the message send
+      requestMiniKitPermissions().then((perms) => {
+        if (perms) console.log('[minikit] permissions granted:', perms);
+      });
+    }
+
     // Haptic on send (D-14)
     if (MiniKit.isInstalled()) {
       await MiniKit.sendHapticFeedback({ hapticsType: 'impact', style: 'medium' });
