@@ -62,13 +62,15 @@ describe('contacts table', () => {
 });
 
 describe('transactions table', () => {
-  it('has correct columns: id, sender_user_id (FK->users, not null), recipient_wallet (not null), amount_usd (not null), tx_hash (nullable), created_at (not null)', async () => {
+  it('has correct columns: id, sender_user_id (FK->users, not null), recipient_wallet (not null), amount_usd (not null), tx_hash (nullable), category (nullable), source (not null), created_at (not null)', async () => {
     const cols = Object.keys(transactions);
     expect(cols).toContain('id');
     expect(cols).toContain('senderUserId');
     expect(cols).toContain('recipientWallet');
     expect(cols).toContain('amountUsd');
     expect(cols).toContain('txHash');
+    expect(cols).toContain('category');
+    expect(cols).toContain('source');
     expect(cols).toContain('createdAt');
 
     // sender_user_id is not null
@@ -76,11 +78,17 @@ describe('transactions table', () => {
 
     // tx_hash is nullable
     expect((transactions.txHash as any).notNull).toBeFalsy();
+
+    // category is nullable
+    expect((transactions.category as any).notNull).toBeFalsy();
+
+    // source is not null with default
+    expect((transactions.source as any).notNull).toBe(true);
   });
 });
 
 describe('debts table', () => {
-  it('has correct columns: id, owner_user_id (FK->users, not null), counterparty_wallet (not null), amount_usd (not null), description (nullable), settled (not null, default false), created_at (not null)', async () => {
+  it('has correct columns: id, owner_user_id (FK->users, not null), counterparty_wallet (not null), amount_usd (not null), description (nullable), settled (not null, default false), iOwe (not null, default false), created_at (not null)', async () => {
     const cols = Object.keys(debts);
     expect(cols).toContain('id');
     expect(cols).toContain('ownerUserId');
@@ -88,6 +96,7 @@ describe('debts table', () => {
     expect(cols).toContain('amountUsd');
     expect(cols).toContain('description');
     expect(cols).toContain('settled');
+    expect(cols).toContain('iOwe');
     expect(cols).toContain('createdAt');
 
     // owner_user_id is not null
@@ -98,6 +107,9 @@ describe('debts table', () => {
 
     // settled is not null
     expect((debts.settled as any).notNull).toBe(true);
+
+    // iOwe is not null with default false
+    expect((debts.iOwe as any).notNull).toBe(true);
   });
 });
 
@@ -152,5 +164,73 @@ describe('insert/select round-trips', () => {
 
     const [fetchedTx] = await db.select().from(transactions).where(eq(transactions.id, tx.id));
     expect(fetchedTx.amountUsd).toBe('42.50');
+  });
+
+  it('inserts a transaction with category "food" and source "genie_send" -- round-trips correctly', async () => {
+    const [user] = await db.insert(users).values({
+      walletAddress: '0xSENDER002',
+      displayName: 'Sender2',
+    }).returning();
+
+    const [tx] = await db.insert(transactions).values({
+      senderUserId: user.id,
+      recipientWallet: '0xRECIPIENT002',
+      amountUsd: '10.00',
+      category: 'food',
+      source: 'genie_send',
+    }).returning();
+
+    expect(tx.category).toBe('food');
+    expect(tx.source).toBe('genie_send');
+  });
+
+  it('inserts a transaction with category null -- accepted (nullable)', async () => {
+    const [user] = await db.insert(users).values({
+      walletAddress: '0xSENDER003',
+      displayName: 'Sender3',
+    }).returning();
+
+    const [tx] = await db.insert(transactions).values({
+      senderUserId: user.id,
+      recipientWallet: '0xRECIPIENT003',
+      amountUsd: '5.00',
+      category: null,
+    }).returning();
+
+    expect(tx.category).toBeNull();
+    expect(tx.source).toBe('genie_send'); // default value
+  });
+
+  it('inserts a debt with iOwe true -- round-trips correctly', async () => {
+    const [user] = await db.insert(users).values({
+      walletAddress: '0xDEBTOR001',
+      displayName: 'Debtor1',
+    }).returning();
+
+    const [debt] = await db.insert(debts).values({
+      ownerUserId: user.id,
+      counterpartyWallet: '0xCREDITOR001',
+      amountUsd: '30.00',
+      description: 'dinner',
+      iOwe: true,
+    }).returning();
+
+    expect(debt.iOwe).toBe(true);
+    expect(debt.settled).toBe(false);
+  });
+
+  it('inserts a debt with default iOwe false', async () => {
+    const [user] = await db.insert(users).values({
+      walletAddress: '0xDEBTOR002',
+      displayName: 'Debtor2',
+    }).returning();
+
+    const [debt] = await db.insert(debts).values({
+      ownerUserId: user.id,
+      counterpartyWallet: '0xCREDITOR002',
+      amountUsd: '20.00',
+    }).returning();
+
+    expect(debt.iOwe).toBe(false); // default
   });
 });
