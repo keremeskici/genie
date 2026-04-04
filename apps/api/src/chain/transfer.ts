@@ -1,5 +1,5 @@
 import { parseUnits } from 'viem';
-import { getWalletClient, GENIE_ROUTER_ADDRESS, PAY_HANDLER_ADDRESS } from './clients';
+import { getWalletClient, relayerAccount, chain, GENIE_ROUTER_ADDRESS, PAY_HANDLER_ADDRESS } from './clients';
 import { GenieRouterAbi, PayHandlerAbi } from '../contracts/abis';
 
 /**
@@ -23,6 +23,8 @@ export async function executeOnChainTransfer(
 
   // Step 1: GenieRouter.route(sender, amount, payHandlerAddress) — pulls from user's USDC allowance
   const routeTxHash = await walletClient.writeContract({
+    account: relayerAccount(),
+    chain,
     address: GENIE_ROUTER_ADDRESS,
     abi: GenieRouterAbi,
     functionName: 'route',
@@ -31,6 +33,8 @@ export async function executeOnChainTransfer(
 
   // Step 2: PayHandler.execute(recipient, amount) — sends to final recipient
   const executeTxHash = await walletClient.writeContract({
+    account: relayerAccount(),
+    chain,
     address: PAY_HANDLER_ADDRESS,
     abi: PayHandlerAbi,
     functionName: 'execute',

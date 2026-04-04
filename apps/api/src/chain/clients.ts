@@ -3,7 +3,7 @@ import { worldchain, worldchainSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const isTestnet = process.env.WORLD_CHAIN_TESTNET === 'true';
-const chain = isTestnet ? worldchainSepolia : worldchain;
+export const chain = isTestnet ? worldchainSepolia : worldchain;
 const rpcUrl = process.env.WORLD_CHAIN_RPC_URL;
 
 export const publicClient = createPublicClient({
