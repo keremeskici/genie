@@ -33,6 +33,51 @@ export function invalidateContextCache(userId: string): void {
   console.log(`[route:chat] context cache invalidated for user ${userId}`);
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolves a raw identity token (wallet address or UUID) to an internal UUID.
+ *
+ * NextAuth session.user.id is the wallet address (e.g. "0x1a2b...").
+ * The DB expects a UUID as the primary key. This function:
+ *   1. Returns UUID passthrough if the input already looks like a UUID.
+ *   2. If input starts with "0x", treats it as a wallet address and upserts
+ *      a users row, returning the internal UUID (idempotent).
+ *   3. Returns undefined for unrecognised input.
+ */
+export async function resolveUserId(rawId: string | undefined): Promise<string | undefined> {
+  if (!rawId) return undefined;
+
+  // Already a UUID — use as-is
+  if (UUID_REGEX.test(rawId)) return rawId;
+
+  // Wallet address — upsert user and return UUID
+  if (rawId.startsWith('0x')) {
+    const walletAddress = rawId.toLowerCase();
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.walletAddress, walletAddress))
+      .limit(1);
+    if (existing) return existing.id;
+
+    // Provision new user — short address as default display name
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        walletAddress,
+        displayName: walletAddress.slice(0, 10),
+        autoApproveUsd: '25',
+      })
+      .returning({ id: users.id });
+    console.log(`[route:chat] provisioned new user for wallet ${walletAddress}: ${newUser?.id}`);
+    return newUser?.id;
+  }
+
+  // Unrecognised — pass through and let downstream handle it
+  return rawId;
+}
+
 async function fetchUserContext(userId: string): Promise<UserContext> {
   // Check cache first (D-10)
   const cached = getCachedContext(userId);
@@ -94,23 +139,29 @@ chatRoute.post('/chat', async (c) => {
 
     console.log(`[route:chat] received ${messages.length} messages, userId: ${userId ?? 'none'}`);
 
-    // Fetch user context if userId provided (D-10), otherwise use stub
-    const userContext = userId ? await fetchUserContext(userId) : undefined;
+    // Resolve wallet address → internal UUID (D-11: session.user.id is wallet address not UUID)
+    const resolvedUserId = await resolveUserId(userId);
+    if (userId && !resolvedUserId) {
+      console.warn(`[route:chat] could not resolve userId: ${userId}`);
+    }
+
+    // Fetch user context if resolvedUserId available (D-10), otherwise use stub
+    const userContext = resolvedUserId ? await fetchUserContext(resolvedUserId) : undefined;
 
     // Phase 5: Auto-settle debts from incoming transfers (DEBT-02, D-09, D-10)
     let settlementNotices: SettlementNotice[] = [];
-    if (userId && userContext) {
+    if (resolvedUserId && userContext) {
       try {
-        settlementNotices = await checkAndSettleDebts(userId, userContext.walletAddress);
+        settlementNotices = await checkAndSettleDebts(resolvedUserId, userContext.walletAddress);
         if (settlementNotices.length > 0) {
-          console.log(`[route:chat] settled ${settlementNotices.length} debt(s) for user ${userId}`);
+          console.log(`[route:chat] settled ${settlementNotices.length} debt(s) for user ${resolvedUserId}`);
         }
       } catch (err) {
         console.error('[route:chat] settlement check failed (continuing):', err);
       }
     }
 
-    const result = await runAgent({ messages, userId, userContext, settlementNotices });
+    const result = await runAgent({ messages, userId: resolvedUserId, userContext, settlementNotices });
 
     // CRITICAL: Use toUIMessageStreamResponse() NOT pipeDataStreamToResponse()
     // pipeDataStreamToResponse is Node.js-specific and crashes on Bun/Hono (Pitfall 3)

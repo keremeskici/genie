@@ -1,5 +1,9 @@
 'use client';
 
+import { ReceiveModal } from '@/components/ReceiveModal';
+import { useSession } from 'next-auth/react';
+import { useState } from 'react';
+
 // Prototype: balance, card, and transactions will be populated from API endpoints
 // once the backend (transaction history + balance) is connected.
 
@@ -13,9 +17,14 @@ const GENIE_SUMMARY =
   "Your wallet is all set. Add funds and I'll track every move for you.";
 
 export const DashboardInterface = () => {
+  const { data: session } = useSession();
+  const [showReceive, setShowReceive] = useState(false);
+  const walletAddress = session?.user?.walletAddress ?? '';
+
   return (
-    <div className="flex flex-col bg-background text-white font-body overflow-hidden touch-none h-full">
-    <div className="flex-1 overflow-y-auto overscroll-contain" style={{ touchAction: 'pan-y' }}>
+    <>
+    <div className="flex flex-col bg-background text-white font-body overflow-hidden h-full touch-none">
+    <div className="flex-1 overflow-hidden">
 
       {/* ── Header ── */}
       <div className="px-6 pt-10 pb-4">
@@ -72,20 +81,18 @@ export const DashboardInterface = () => {
         <p className="font-headline text-5xl font-extrabold tracking-tighter text-white">
           $0.00
         </p>
-        <p className="font-headline text-sm font-bold text-accent tracking-widest uppercase mt-1">
-          USDC
-        </p>
       </div>
 
       {/* ── Quick actions ── */}
       <div className="px-6 mb-8 grid grid-cols-3 gap-3">
         {[
-          { label: 'Send', icon: 'north_east' },
-          { label: 'Receive', icon: 'south_west' },
-          { label: 'Add Funds', icon: 'add' },
-        ].map(({ label, icon }) => (
+          { label: 'Send', icon: 'north_east', onClick: undefined },
+          { label: 'Receive', icon: 'south_west', onClick: () => setShowReceive(true) },
+          { label: 'Add Funds', icon: 'add', onClick: undefined },
+        ].map(({ label, icon, onClick }) => (
           <button
             key={label}
+            onClick={onClick}
             className="flex flex-col items-center gap-2 bg-surface py-4 active:scale-95 transition-transform duration-150"
           >
             <span className="material-symbols-outlined text-accent text-xl">{icon}</span>
@@ -126,5 +133,9 @@ export const DashboardInterface = () => {
 
     </div>
     </div>
+      {showReceive && walletAddress && (
+        <ReceiveModal address={walletAddress} onClose={() => setShowReceive(false)} />
+      )}
+    </>
   );
 };

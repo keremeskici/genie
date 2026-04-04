@@ -20,12 +20,15 @@ export default function Home() {
     if (!isInstalled || hasAttemptedAuth.current) return;
     hasAttemptedAuth.current = true;
 
+    const destination = () =>
+      localStorage.getItem('genie_onboarding_done') ? '/home' : '/onboarding';
+
     getSession().then((session) => {
       if (session) {
-        router.push('/home');
+        router.push(destination());
       } else {
         walletAuth()
-          .then(() => router.push('/home'))
+          .then(() => router.push(destination()))
           .catch((error) => console.error('Auto wallet authentication error', error));
       }
     });

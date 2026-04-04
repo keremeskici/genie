@@ -27,10 +27,10 @@ Requirements for hackathon demo. Each maps to roadmap phases.
 
 ### Financial Operations
 
-- [ ] **FOPS-01**: User can check USDC balance on World Chain via chat
-- [ ] **FOPS-02**: User can send USDC to contacts/addresses via natural language
-- [ ] **FOPS-03**: Agent resolves recipients via contacts, ENS, or wallet address
-- [ ] **FOPS-04**: Transfers under auto-approve threshold execute immediately
+- [x] **FOPS-01**: User can check USDC balance on World Chain via chat
+- [x] **FOPS-02**: User can send USDC to contacts/addresses via natural language
+- [x] **FOPS-03**: Agent resolves recipients via contacts, ENS, or wallet address
+- [x] **FOPS-04**: Transfers under auto-approve threshold execute immediately
 - [ ] **FOPS-05**: Transfers over threshold require explicit confirmation
 - [x] **FOPS-06**: GenieRouter + PayHandler smart contracts handle transfers on World Chain
 

@@ -35,9 +35,7 @@ export const ProfileInterface = () => {
   };
 
   return (
-    <div
-      className="flex flex-col bg-background text-white font-body overflow-hidden touch-none h-full"
-    >
+    <div className="flex flex-col bg-background text-white font-body overflow-hidden h-full">
     <div className="flex-1 overflow-y-auto overscroll-contain" style={{ touchAction: 'pan-y' }}>
       {/* ── Header ── */}
       <div className="px-6 pt-10 pb-6">
@@ -65,7 +63,8 @@ export const ProfileInterface = () => {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Enter your name"
-            className="flex-1 bg-surface border border-white/10 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-accent/50 transition-colors"
+            className="flex-1 bg-transparent px-4 py-3 text-white placeholder:text-white/30 outline-none"
+            style={{ fontSize: '16px' }}
           />
           <button
             onClick={handleSaveName}
@@ -82,7 +81,7 @@ export const ProfileInterface = () => {
           Set the maximum amount Genie can spend per transaction on your behalf.
         </p>
         <div className="flex gap-2">
-          <div className="flex-1 flex items-center bg-surface border border-white/10 px-4 focus-within:border-accent/50 transition-colors">
+          <div className="flex-1 flex items-center bg-transparent px-4">
             <span className="text-white/40 text-sm font-bold mr-1 flex-shrink-0">$</span>
             <input
               type="number"
@@ -91,7 +90,8 @@ export const ProfileInterface = () => {
               value={spendingLimit}
               onChange={(e) => setSpendingLimit(e.target.value)}
               placeholder="0.00"
-              className="flex-1 bg-transparent py-3 text-sm text-white placeholder:text-white/30 outline-none appearance-none"
+              className="flex-1 bg-transparent py-3 text-white placeholder:text-white/30 outline-none appearance-none"
+              style={{ fontSize: '16px' }}
             />
           </div>
           <button

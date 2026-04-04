@@ -18,6 +18,9 @@ export interface AiInsight {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
+// Height of the bottom nav bar — input floats above it when keyboard is closed
+const NAV_HEIGHT = 108;
+
 const PLACEHOLDERS = [
   'Go off.',
   "What's the move?",
@@ -30,11 +33,14 @@ export const ChatInterface = () => {
   const { data: session } = useSession();
   const [input, setInput] = useState('');
   const [canScroll, setCanScroll] = useState(false);
+  const [inputBottom, setInputBottom] = useState(NAV_HEIGHT);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [placeholder] = useState(
     () => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)],
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const permissionsRequested = useRef(false);
 
   const transport = useMemo(
@@ -48,6 +54,52 @@ export const ChatInterface = () => {
 
   const isThinking = status === 'submitted';
 
+  // Hide nav when keyboard is open
+  useEffect(() => {
+    if (keyboardOpen) {
+      document.documentElement.classList.add('keyboard-open');
+    } else {
+      document.documentElement.classList.remove('keyboard-open');
+    }
+    return () => {
+      document.documentElement.classList.remove('keyboard-open');
+    };
+  }, [keyboardOpen]);
+
+  // Track keyboard height via visualViewport
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const kbHeight = window.innerHeight - vv.height - vv.offsetTop;
+      const isOpen = kbHeight > 50;
+      setKeyboardOpen(isOpen);
+      setInputBottom(isOpen ? kbHeight + 8 : NAV_HEIGHT);
+      // When keyboard opens, reset scroll so first message stays visible
+      if (isOpen && scrollRef.current) {
+        const el = scrollRef.current;
+        if (el.scrollHeight <= el.clientHeight + 50) el.scrollTop = 0;
+      }
+      if (!isOpen) {
+        const reset = () => {
+          window.scrollTo(0, 0);
+          document.body.scrollTop = 0;
+        };
+        reset();
+        setTimeout(reset, 100);
+        setTimeout(reset, 300);
+      }
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+
+  // Only allow scroll when content overflows
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -56,13 +108,13 @@ export const ChatInterface = () => {
     const ro = new ResizeObserver(check);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [messages, status]);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, status]);
 
-  // Detect payment confirmation messages from agent and trigger MiniKit Pay (D-12)
+  // Detect payment confirmation messages from agent and trigger MiniKit Pay
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
@@ -75,7 +127,6 @@ export const ChatInterface = () => {
 
     if (!textContent) return;
 
-    // Detect payment confirmation JSON fence from agent
     const jsonMatch = textContent.match(/```json\s*\n([\s\S]*?)\n```/);
     if (!jsonMatch) return;
 
@@ -99,34 +150,48 @@ export const ChatInterface = () => {
     if (!input.trim() || (status !== 'ready' && status !== 'error')) return;
     const text = input.trim();
     setInput('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
 
-    // Request wallet address and user profile on first message (D-15)
     if (!permissionsRequested.current) {
       permissionsRequested.current = true;
-      // Fire-and-forget — don't block the message send
       requestMiniKitPermissions().then((perms) => {
         if (perms) console.log('[minikit] permissions granted:', perms);
       });
     }
 
-    // Haptic on send (D-14)
     if (MiniKit.isInstalled()) {
       await MiniKit.sendHapticFeedback({ hapticsType: 'impact', style: 'medium' });
     }
     sendMessage({ text }, { body: { userId: session?.user?.id } });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') handleSend();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   };
 
   return (
-    <div className="flex flex-col bg-background text-white font-body h-full">
+    <div className="flex flex-col bg-background text-white font-body h-full overflow-hidden">
       {/* Scrollable messages */}
       <div
         ref={scrollRef}
-        className={`flex-1 min-h-0 overscroll-contain pt-6 pb-4 px-6 ${canScroll ? 'overflow-y-auto' : 'overflow-y-hidden'}`}
-        style={{ touchAction: canScroll ? 'pan-y' : 'none' }}
+        className="flex-1 min-h-0 overscroll-contain pt-6 px-6"
+        style={{
+          paddingBottom: `${NAV_HEIGHT + 72}px`,
+          overflowY: keyboardOpen ? 'hidden' : 'auto',
+          touchAction: keyboardOpen || !canScroll ? 'none' : 'pan-y',
+        }}
       >
         <div className="flex flex-col gap-10 max-w-md mx-auto">
           {messages.length === 0 && <EmptyState />}
@@ -155,21 +220,26 @@ export const ChatInterface = () => {
         </div>
       </div>
 
-      {/* Chat input — in-flow so it never scrolls with messages */}
-      <div className="flex-shrink-0 px-6 py-3 bg-background touch-none" style={{ touchAction: 'none' }}>
+      {/* Input — fixed so it floats above nav bar, then above keyboard when open */}
+      <div
+        className="fixed left-0 w-full px-6 z-50 transition-[bottom] duration-100"
+        style={{ bottom: inputBottom, touchAction: 'none' }}
+      >
         <div className="max-w-md mx-auto">
-          <div className="bg-surface p-2 flex items-center gap-2">
-            <input
-              type="text"
+          <div className="bg-surface p-2 flex items-end gap-2">
+            <textarea
+              ref={textareaRef}
+              rows={1}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleTextareaInput}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-sm px-4 placeholder:text-white/30 text-white outline-none"
+              className="flex-1 bg-transparent border-none focus:ring-0 px-4 py-2 placeholder:text-white/30 text-white outline-none resize-none overflow-hidden leading-relaxed"
+              style={{ maxHeight: '120px', fontSize: '16px' }}
             />
             <button
               onClick={handleSend}
-              className="w-10 h-10 bg-accent text-black flex items-center justify-center active:scale-90 transition-transform"
+              className="w-10 h-10 bg-accent text-black flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
               aria-label="Send"
             >
               <span className="material-symbols-outlined">north</span>
@@ -192,7 +262,7 @@ function EmptyState() {
           style={{ mixBlendMode: 'screen' }}
         />
       </div>
-      <div className="relative flex-1 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white">
+      <div className="relative flex-1 min-w-0 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white break-words">
         <span
           className="absolute bottom-5 -left-[9px] w-0 h-0"
           style={{
@@ -229,7 +299,7 @@ function UserMessage({
     .join('');
   return (
     <div className="flex justify-end pl-12">
-      <div className="relative bg-surface border border-white/10 p-4 rounded-t-2xl rounded-bl-2xl text-white">
+      <div className="relative bg-surface border border-white/10 p-4 rounded-t-2xl rounded-bl-2xl text-white break-words min-w-0">
         <span
           className="absolute bottom-4 -right-[9px] w-0 h-0"
           style={{
@@ -258,11 +328,6 @@ function AiMessageBubble({
 
   const contactData = parseContactList(textContent);
 
-  const handleContactSelect = (contact: ContactData) => {
-    onContactSelect(contact);
-  };
-
-  // Strip the JSON fence from rendered markdown if contacts detected
   const markdownText = contactData
     ? textContent.replace(/```json\s*\n[\s\S]*?\n```/, '').trim()
     : textContent;
@@ -277,7 +342,7 @@ function AiMessageBubble({
           style={{ mixBlendMode: 'screen' }}
         />
       </div>
-      <div className="relative flex-1 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white">
+      <div className="relative flex-1 min-w-0 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white break-words">
         <span
           className="absolute bottom-5 -left-[9px] w-0 h-0"
           style={{
@@ -303,56 +368,38 @@ function AiMessageBubble({
               remarkPlugins={[remarkGfm]}
               components={{
                 p: ({ children }) => (
-                  <p className="text-sm leading-relaxed mb-2 last:mb-0">
-                    {children}
-                  </p>
+                  <p className="text-sm leading-relaxed mb-2 last:mb-0">{children}</p>
                 ),
                 strong: ({ children }) => (
                   <strong className="font-bold text-white">{children}</strong>
                 ),
                 code: ({ children }) => (
-                  <code className="bg-background px-1 text-accent text-xs font-mono">
-                    {children}
-                  </code>
+                  <code className="bg-background px-1 text-accent text-xs font-mono">{children}</code>
                 ),
                 pre: ({ children }) => (
-                  <pre className="bg-background p-3 text-xs font-mono overflow-x-auto text-white/80 my-2">
-                    {children}
-                  </pre>
+                  <pre className="bg-background p-3 text-xs font-mono overflow-x-auto text-white/80 my-2">{children}</pre>
                 ),
                 ul: ({ children }) => (
-                  <ul className="list-disc list-inside text-sm space-y-1 my-2">
-                    {children}
-                  </ul>
+                  <ul className="list-disc list-inside text-sm space-y-1 my-2">{children}</ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="list-decimal list-inside text-sm space-y-1 my-2">
-                    {children}
-                  </ol>
+                  <ol className="list-decimal list-inside text-sm space-y-1 my-2">{children}</ol>
                 ),
                 a: ({ href, children }) => (
-                  <a
-                    href={href}
-                    className="text-accent underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {children}
-                  </a>
+                  <a href={href} className="text-accent underline" target="_blank" rel="noopener noreferrer">{children}</a>
                 ),
               }}
             >
               {markdownText}
             </ReactMarkdown>
           )}
-          {contactData && <ContactList data={contactData} onSelect={handleContactSelect} />}
+          {contactData && <ContactList data={contactData} onSelect={onContactSelect} />}
         </div>
       </div>
     </div>
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ErrorMessage({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
     <div className="flex items-end gap-2">
@@ -364,7 +411,7 @@ function ErrorMessage({ error, onRetry }: { error: Error; onRetry: () => void })
           style={{ mixBlendMode: 'screen' }}
         />
       </div>
-      <div className="relative flex-1 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white border border-red-500/30">
+      <div className="relative flex-1 min-w-0 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white border border-red-500/30 break-words">
         <span
           className="absolute bottom-5 -left-[9px] w-0 h-0"
           style={{
@@ -374,16 +421,10 @@ function ErrorMessage({ error, onRetry }: { error: Error; onRetry: () => void })
           }}
         />
         <div className="flex items-center gap-2 mb-3">
-          <span className="material-symbols-outlined text-red-400 text-lg">
-            error
-          </span>
-          <span className="font-headline text-[10px] uppercase tracking-widest text-red-400 font-bold">
-            Error
-          </span>
+          <span className="material-symbols-outlined text-red-400 text-lg">error</span>
+          <span className="font-headline text-[10px] uppercase tracking-widest text-red-400 font-bold">Error</span>
         </div>
-        <p className="text-sm text-white/70 mb-3">
-          Something went wrong. Please try again.
-        </p>
+        <p className="text-sm text-white/70 mb-3">Something went wrong. Please try again.</p>
         <button
           onClick={onRetry}
           className="px-4 py-2 bg-accent text-black text-xs font-bold uppercase tracking-widest active:scale-95 transition-transform"

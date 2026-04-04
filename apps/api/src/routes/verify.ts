@@ -1,13 +1,14 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { db, users, eq } from '@genie/db';
-import { invalidateContextCache } from './chat';
+import { invalidateContextCache, resolveUserId } from './chat';
 import { WORLD_APP_ID, WORLD_ACTION, WORLD_VERIFY_API_URL } from '../config/env';
 
 export const verifyRoute = new Hono();
 
 const proofSchema = z.object({
-  userId: z.string().uuid(),
+  // Accept wallet address (0x...) or UUID — resolveUserId handles both
+  userId: z.string().min(1),
   proof: z.string(),
   merkle_root: z.string(),
   nullifier_hash: z.string(),
@@ -21,7 +22,13 @@ verifyRoute.post('/verify', async (c) => {
     return c.json({ error: 'INVALID_INPUT', message: 'Missing or invalid proof fields' }, 400);
   }
 
-  const { userId, proof, merkle_root, nullifier_hash, verification_level } = parsed.data;
+  const { userId: rawUserId, proof, merkle_root, nullifier_hash, verification_level } = parsed.data;
+
+  // Resolve wallet address → internal UUID (same as chat route — session.user.id is wallet address)
+  const userId = await resolveUserId(rawUserId);
+  if (!userId) {
+    return c.json({ error: 'USER_NOT_FOUND', message: 'Could not resolve userId' }, 404);
+  }
 
   // D-04: Check if user exists and is not already verified
   const [existing] = await db.select({ worldId: users.worldId }).from(users).where(eq(users.id, userId)).limit(1);
