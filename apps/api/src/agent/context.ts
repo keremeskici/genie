@@ -1,11 +1,13 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { CoreMessage } from 'ai';
+import type { AgentMemory } from '../kv/types';
 
 export interface UserContext {
   walletAddress: string;
   displayName: string;
   autoApproveUsd: number;
+  memory?: AgentMemory;
 }
 
 /**
@@ -33,7 +35,10 @@ export function assembleContext(
   history: CoreMessage[],
   userMessage: string,
 ): { system: string; messages: CoreMessage[] } {
-  const contextInjection = `[User context: wallet=${userContext.walletAddress}, name=${userContext.displayName}, threshold=$${userContext.autoApproveUsd}]`;
+  const memoryStr = userContext.memory
+    ? `, goals=${userContext.memory.activeGoals.length}, profile=${JSON.stringify(userContext.memory.financialProfile)}`
+    : '';
+  const contextInjection = `[User context: wallet=${userContext.walletAddress}, name=${userContext.displayName}, threshold=$${userContext.autoApproveUsd}${memoryStr}]`;
 
   return {
     system: systemPrompt,
