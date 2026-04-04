@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "node --env-file=.env --import tsx --watch src/index.ts",
     "start": "node --import tsx src/index.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@0glabs/0g-ts-sdk": "^0.3.3",
