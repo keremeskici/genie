@@ -52,8 +52,12 @@ export const Navigation = () => {
   return (
     <nav className="relative flex items-center w-full py-3">
       <span
-        className="absolute top-0 h-[2px] w-6 bg-[#CCFF00] transition-all duration-300 ease-in-out"
-        style={{ left: `${indicatorLeftPct}%`, transform: 'translateX(-50%)' }}
+        className="absolute top-0 h-[2px] bg-[#CCFF00] transition-all duration-300 ease-in-out"
+        style={{
+          width: `${100 / TABS.length}%`,
+          left: `${indicatorLeftPct}%`,
+          transform: 'translateX(-50%)',
+        }}
       />
 
       {TABS.map((tab) => {

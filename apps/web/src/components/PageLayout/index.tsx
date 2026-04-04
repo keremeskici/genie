@@ -8,7 +8,7 @@ import { twMerge } from 'tailwind-merge';
  */
 export const Page = (props: { children: ReactNode; className?: string }) => {
   return (
-    <div className={twMerge(clsx('flex h-dvh flex-col', props.className))}>
+    <div className={twMerge(clsx('flex h-dvh flex-col overflow-hidden', props.className))}>
       {props.children}
     </div>
   );

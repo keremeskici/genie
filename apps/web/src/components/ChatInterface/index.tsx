@@ -79,7 +79,7 @@ export const ChatInterface = ({
   };
 
   return (
-    <div className="relative flex flex-col bg-background text-white font-body" style={{ height: '100dvh' }}>
+    <div className="relative flex flex-col bg-background text-white font-body overflow-hidden touch-none" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       {/* TopAppBar */}
       <header className="fixed top-0 w-full z-50 bg-background flex justify-between items-center px-6 py-3 border-b border-white/5">
         <div className="flex items-center gap-3">
@@ -120,7 +120,7 @@ export const ChatInterface = ({
       </header>
 
       {/* Scrollable messages — padded so content clears the fixed header and input */}
-      <div className="flex-1 overflow-y-auto pt-20 pb-6 px-6">
+      <div className="flex-1 overflow-y-auto overscroll-contain pt-20 pb-6 px-6" style={{ touchAction: 'pan-y' }}>
         <div className="flex flex-col gap-10 max-w-md mx-auto">
           {messages.map((message) =>
             message.type === 'user' ? (
@@ -178,7 +178,7 @@ function AiMessage({ content, insights }: { content: string; insights?: AiInsigh
   return (
     <div className="flex items-end gap-2">
       {/* Genie — blended against black, sits at the bottom-left of every AI bubble */}
-      <div className="flex-shrink-0 w-16 h-20 self-end">
+      <div className="flex-shrink-0 w-20 h-24 self-end">
         <img
           src="/genie.png"
           alt="Genie"

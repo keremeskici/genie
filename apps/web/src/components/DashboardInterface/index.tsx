@@ -79,36 +79,6 @@ export const DashboardInterface = () => {
         </p>
       </div>
 
-      {/* ── Card (below balance) ── */}
-      <div className="px-6 mb-8">
-        <div className="relative w-full aspect-[1.586/1] bg-surface border border-white/10 rounded-2xl p-6 flex flex-col justify-between overflow-hidden">
-          {/* Top row */}
-          <div className="flex items-center justify-between">
-            <span className="font-headline text-[10px] uppercase tracking-[0.25em] text-white/40">
-              World App
-            </span>
-            <svg width="36" height="28" viewBox="0 0 36 28" fill="none">
-              <rect x="0.5" y="0.5" width="35" height="27" rx="3.5" stroke="white" strokeOpacity="0.2" fill="none" />
-              <rect x="12" y="0.5" width="12" height="27" stroke="white" strokeOpacity="0.12" fill="none" />
-              <rect x="0.5" y="9" width="35" height="10" stroke="white" strokeOpacity="0.12" fill="none" />
-              <rect x="12" y="9" width="12" height="10" fill="white" fillOpacity="0.06" />
-            </svg>
-          </div>
-          {/* Card number */}
-          <div className="flex flex-col gap-2">
-            <p className="font-mono text-sm tracking-[0.3em] text-white/30">
-              •••• •••• •••• 0000
-            </p>
-            <p className="font-headline text-xs uppercase tracking-widest text-white/40">
-              USDC
-            </p>
-          </div>
-          {/* Decorative rings */}
-          <div className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full border border-accent/10" />
-          <div className="absolute -bottom-4 -right-4 w-20 h-20 rounded-full border border-accent/5" />
-        </div>
-      </div>
-
       {/* ── Quick actions ── */}
       <div className="px-6 mb-8 grid grid-cols-3 gap-3">
         {[
