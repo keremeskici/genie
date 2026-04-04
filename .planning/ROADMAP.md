@@ -75,7 +75,12 @@ Plans:
   3. Transfers under the auto-approve threshold execute immediately without a confirmation step
   4. Transfers over the threshold pause and ask the user to confirm before executing
   5. GenieRouter and PayHandler contracts are deployed on World Chain and the API routes transfers through them
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [x] 04-01-PLAN.md — Foundry contracts (GenieRouter + PayHandler), schema migration, viem clients
+- [x] 04-02-PLAN.md — Financial tools (get_balance, resolve_contact, send_usdc) + transfer module
+- [x] 04-03-PLAN.md — Confirm endpoint and agent tool registration
+- [ ] 04-04-PLAN.md — Gap closure: fix transfer.ts TS errors, deploy contracts, set env vars
 
 ### Phase 5: Cross-Chain & Social
 **Goal**: Users can deposit USDC from other chains and track spending and debts via natural language
@@ -111,6 +116,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (backend). Phase 6 ru
 | 1. Agent Infra | 2/2 | Complete   | 2026-04-04 |
 | 2. Data Layer | 4/4 | Complete   | 2026-04-04 |
 | 3. Identity | 2/2 | Complete   | 2026-04-04 |
-| 4. Financial Ops | 1/3 | In Progress | - |
+| 4. Financial Ops | 3/4 | In Progress | - |
 | 5. Cross-Chain & Social | 0/? | Not started | - |
 | 6. Mini App Shell | 0/? | Not started | - |
