@@ -18,6 +18,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: Financial Ops** - Smart contracts, balance check, send USDC, contact resolution
 - [x] **Phase 5: Cross-Chain & Social** - Arc CCTP deposits, spending tracking, debt management (completed 2026-04-04)
 - [x] **Phase 6: Mini App Shell** - Next.js Mini App, MiniKit 2.0, chat UI, streaming (parallel track) (completed 2026-04-04)
+- [ ] **Phase 7: API Wiring** - Path alignment + user provisioning to fix frontend-backend integration (gap closure)
+- [ ] **Phase 8: Identity Wiring** - Verify-proof fix + auth boundary enforcement (gap closure)
+- [ ] **Phase 9: Confirmation Flow** - Wire frontend confirm UI for over-threshold USDC transfers (gap closure)
 
 ## Phase Details
 
@@ -106,10 +109,46 @@ Plans:
 - [x] 06-04-PLAN.md — Gap closure: env var fix, add_contact + list_contacts tools, contact selection wiring
 **UI hint**: yes
 
+### Phase 7: API Wiring — Path Alignment + User Provisioning
+**Goal**: Frontend-to-backend integration works end-to-end — API paths match, user identity resolves correctly, and all chat/tool flows connect
+**Depends on**: Phase 6 (frontend exists), Phase 1-5 (backend exists)
+**Requirements**: AGEN-04, AGEN-05, AGEN-07, MAPP-03, FOPS-01, FOPS-02, FOPS-03, FOPS-04, SPND-02, DEBT-01, DEBT-02, MAPP-04
+**Gap Closure:** Closes audit bugs #1 (path mismatch) and #2 (userId mismatch)
+**Success Criteria** (what must be TRUE):
+  1. Frontend ChatInterface sends a message and receives a streamed response from the Hono backend (no 404)
+  2. A wallet-authenticated user is provisioned in the users table and all DB queries resolve to the correct UUID
+  3. Agent tools (balance, send, contacts, debts, spending) are reachable from the frontend chat flow
+  4. 0G KV keys use the correct user identifier consistently
+**Plans**: TBD
+
+### Phase 8: Identity Wiring — Verify-Proof Fix + Auth Boundary
+**Goal**: World ID verification persists to the database and protected routes enforce authentication
+**Depends on**: Phase 7 (API paths must work first)
+**Requirements**: WRID-01, WRID-02, WRID-03, WRID-04
+**Gap Closure:** Closes audit bugs #3 (verify path/body) and #5 (redirect commented out)
+**Success Criteria** (what must be TRUE):
+  1. BFF verify-proof calls the correct backend path with full proof payload (proof, merkle_root, verification_level)
+  2. After verification, the user's worldId is written to the database
+  3. Protected routes redirect unauthenticated users to the landing page
+  4. isVerified correctly reflects database state after World ID verification
+**Plans**: TBD
+
+### Phase 9: Confirmation Flow
+**Goal**: Over-threshold USDC transfers show a confirmation UI and execute upon user approval
+**Depends on**: Phase 7 (chat flow must work), Phase 8 (verification gating must work)
+**Requirements**: FOPS-05
+**Gap Closure:** Closes audit bug #4 (no frontend confirm caller)
+**Success Criteria** (what must be TRUE):
+  1. When send_usdc returns confirmation_required, the chat UI renders a confirm/cancel button
+  2. Clicking confirm calls POST /confirm with the correct txId
+  3. The transaction executes after confirmation and the user sees a success message
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
 Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 (backend). Phase 6 runs in parallel from Phase 1 onward.
+Gap closure phases 7-9 run sequentially after all original phases.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -119,3 +158,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 (backend). Phase 6 runs i
 | 4. Financial Ops | 0/? | Not started | - |
 | 5. Cross-Chain & Social | 3/3 | Complete   | 2026-04-04 |
 | 6. Mini App Shell | 4/4 | Complete   | 2026-04-04 |
+| 7. API Wiring | 0/? | Not started | - |
+| 8. Identity Wiring | 0/? | Not started | - |
+| 9. Confirmation Flow | 0/? | Not started | - |
