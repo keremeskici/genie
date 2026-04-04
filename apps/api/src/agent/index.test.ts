@@ -33,6 +33,30 @@ vi.mock('../tools/send-usdc', () => ({
   createSendUsdcTool: vi.fn(() => ({ description: 'mock send_usdc tool' })),
 }));
 
+vi.mock('../tools/update-memory', () => ({
+  createUpdateMemoryTool: vi.fn(() => ({ description: 'mock update_memory tool' })),
+}));
+
+vi.mock('../tools/create-debt', () => ({
+  createCreateDebtTool: vi.fn(() => ({ description: 'mock create_debt tool' })),
+}));
+
+vi.mock('../tools/list-debts', () => ({
+  createListDebtsTool: vi.fn(() => ({ description: 'mock list_debts tool' })),
+}));
+
+vi.mock('../tools/get-spending', () => ({
+  createGetSpendingTool: vi.fn(() => ({ description: 'mock get_spending tool' })),
+}));
+
+vi.mock('../tools/add-contact', () => ({
+  createAddContactTool: vi.fn(() => ({ description: 'mock add_contact tool' })),
+}));
+
+vi.mock('../tools/list-contacts', () => ({
+  createListContactsTool: vi.fn(() => ({ description: 'mock list_contacts tool' })),
+}));
+
 import { runAgent } from './index';
 import { streamText, stepCountIs } from 'ai';
 import { classifyIntent, selectModel } from './classifier';
@@ -111,5 +135,44 @@ describe('runAgent', () => {
         stopWhen: expect.objectContaining({ type: 'step-count', count: 5 }),
       }),
     );
+  });
+});
+
+describe('runAgent — update_memory tool registration', () => {
+  const mockModel = { type: 'language-model', modelId: 'mock-model' } as any;
+  const mockMessages: CoreMessage[] = [{ role: 'user', content: 'I earn 5000 a month' }];
+  const mockAssembledCtx = {
+    system: 'mock system prompt',
+    messages: [
+      { role: 'user', content: '[User context]' },
+      { role: 'assistant', content: 'Understood.' },
+      { role: 'user', content: 'I earn 5000 a month' },
+    ] as CoreMessage[],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(classifyIntent).mockResolvedValue('action');
+    vi.mocked(selectModel).mockReturnValue(mockModel);
+    vi.mocked(assembleContext).mockReturnValue(mockAssembledCtx);
+    vi.mocked(applyWindow).mockReturnValue(mockAssembledCtx.messages);
+    vi.mocked(streamText).mockReturnValue({ toUIMessageStreamResponse: vi.fn() } as any);
+  });
+
+  it('includes update_memory tool when userId is provided', async () => {
+    await runAgent({ messages: mockMessages, userId: 'user-123' });
+
+    expect(streamText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: expect.objectContaining({ update_memory: expect.anything() }),
+      }),
+    );
+  });
+
+  it('does NOT include update_memory tool when userId is absent', async () => {
+    await runAgent({ messages: mockMessages });
+
+    const streamTextCall = vi.mocked(streamText).mock.calls[0][0];
+    expect(streamTextCall.tools).not.toHaveProperty('update_memory');
   });
 });
