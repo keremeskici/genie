@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 const GOALS = [
   'Financial planning',
@@ -11,8 +12,11 @@ const GOALS = [
   'Other',
 ];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+
 export default function Onboarding() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [step, setStep] = useState(0);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [budget, setBudget] = useState('100');
@@ -31,7 +35,23 @@ export default function Onboarding() {
     );
   };
 
-  const finish = () => {
+  const finish = async (budgetValue: string) => {
+    const userId = session?.user?.id;
+    if (userId && budgetValue && budgetValue !== '0') {
+      try {
+        await fetch(`${API_URL}/api/users/profile`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            autoApproveUsd: Number(budgetValue),
+          }),
+        });
+      } catch (err) {
+        console.error('[onboarding] failed to save threshold:', err);
+        // Non-blocking: proceed to home even if API call fails
+      }
+    }
     localStorage.setItem('genie_onboarding_done', '1');
     router.push('/home');
   };
@@ -91,7 +111,7 @@ export default function Onboarding() {
           <StepGoals selected={selectedGoals} onToggle={toggleGoal} />
         )}
         {step === 2 && (
-          <StepBudget budget={budget} onChange={setBudget} />
+          <StepBudget budget={budget} onChange={setBudget} onFinish={() => finish(budget)} />
         )}
       </div>
 
