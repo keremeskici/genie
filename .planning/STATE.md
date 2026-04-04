@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 07-api-wiring-07-04-PLAN.md
-last_updated: "2026-04-04T23:37:57.046Z"
-last_activity: 2026-04-04
+last_updated: "2026-04-05T00:00:00.000Z"
+last_activity: 2026-04-05
 progress:
   total_phases: 9
-  completed_phases: 5
-  total_plans: 16
-  completed_plans: 17
+  completed_phases: 6
+  total_plans: 23
+  completed_plans: 22
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04)
 
 **Core value:** A single chat message can trigger a verified, human-backed financial transaction — send money, bridge USDC cross-chain, or plan savings — all inside World App with proof-of-human identity.
-**Current focus:** Phase 06 — mini-app-shell
+**Current focus:** Phase 07 — api-wiring
 
 ## Current Position
 
 Phase: 07 (api-wiring) — EXECUTING
-Plan: 2 of 3
-Status: Ready to execute
-Last activity: 2026-04-04
+Plan: 4 of 4
+Status: Executing Phase 07
+Last activity: 2026-04-05
 
 Progress: [████████████████████] 8/8 plans (100%)
 
@@ -67,6 +67,8 @@ Progress: [████████████████████] 8/8 pla
 | Phase 06-mini-app-shell P03 | 3 | 2 tasks | 2 files |
 | Phase 06-mini-app-shell P04 | 8 | 2 tasks | 5 files |
 | Phase 07 P01 | 4 | 4 tasks | 5 files |
+| Phase 07-api-wiring P02 | 8 | 2 tasks | 4 files |
+| Phase 07 P03 | 2 | 2 tasks | 3 files |
 | Phase 07 P04 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
@@ -111,6 +113,11 @@ Recent decisions affecting current work:
 - [Phase 06-mini-app-shell]: add_contact tool has no verification gate -- saving contacts is ungated per plan spec
 - [Phase 07]: resolveUserId accepts 0x wallet addresses and UUIDs — wallet addresses trigger upsert, UUIDs pass through unchanged
 - [Phase 07]: verify route shares resolveUserId from chat module — single implementation for wallet-to-UUID resolution
+- [Phase 07-api-wiring]: POST /api/users/provision created as HTTP endpoint — resolveUserId() is internal only; provision endpoint is the public-facing contract
+- [Phase 07-api-wiring]: needsOnboarding = displayName.startsWith('0x') — wallet-derived name is proxy for no-real-name; avoids schema migration
+- [Phase 07-api-wiring]: next-auth/jwt module augmentation removed — v5 beta does not export it; JWT fields use as-casts
+- [Phase 07]: usersRoute reuses resolveUserId() from chat.ts — consistent wallet-to-UUID adapter across all routes
+- [Phase 07]: Onboarding API call is non-blocking — failure does not prevent users from accessing the app
 - [Phase 07]: REQUIREMENTS.md coverage count updated to Complete 18 / Pending 8 matching Phase 7 delivery state
 - [Phase 07]: 07-03-PLAN requirements field reduced to [FOPS-04] only — MAPP-01/MAPP-02 were Phase 6 requirements included in error
 
@@ -126,6 +133,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T23:37:57.043Z
+Last session: 2026-04-05T00:00:00.000Z
 Stopped at: Completed 07-api-wiring-07-04-PLAN.md
 Resume file: None

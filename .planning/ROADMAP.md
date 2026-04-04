@@ -119,7 +119,12 @@ Plans:
   2. A wallet-authenticated user is provisioned in the users table and all DB queries resolve to the correct UUID
   3. Agent tools (balance, send, contacts, debts, spending) are reachable from the frontend chat flow
   4. 0G KV keys use the correct user identifier consistently
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [x] 07-01-PLAN.md — API path alignment, resolveUserId, verify-proof BFF fix, redirect uncomment
+- [x] 07-02-PLAN.md — Auth callback provisioning, session UUID augmentation, onboarding redirect
+- [x] 07-03-PLAN.md — Onboarding threshold wiring (PATCH /api/users/profile)
+- [ ] 07-04-PLAN.md — Gap closure: requirements accounting, must_have truth fix, orphaned requirement cleanup
 
 ### Phase 8: Identity Wiring — Verify-Proof Fix + Auth Boundary
 **Goal**: World ID verification persists to the database and protected routes enforce authentication
