@@ -24,6 +24,8 @@ export const transactions = pgTable('transactions', {
   recipientWallet: text('recipient_wallet').notNull(),
   amountUsd: numeric('amount_usd', { precision: 10, scale: 2 }).notNull(),
   txHash: text('tx_hash'),
+  status: text('status').notNull().default('confirmed'),
+  expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
