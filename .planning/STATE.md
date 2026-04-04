@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-mini-app-shell-06-03-PLAN.md
-last_updated: "2026-04-04T19:59:43.590Z"
+stopped_at: Completed 06-mini-app-shell-06-04-PLAN.md
+last_updated: "2026-04-04T20:25:59.936Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 6
   completed_phases: 6
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 19
+  completed_plans: 19
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-04)
 ## Current Position
 
 Phase: 06 (mini-app-shell) — EXECUTING
-Plan: 2 of 3
+Plan: 2 of 4
 Status: Ready to execute
 Last activity: 2026-04-04
 
@@ -65,6 +65,7 @@ Progress: [████████████████████] 8/8 pla
 | Phase 04-financial-ops P04 | 15 | 2 tasks | 5 files |
 | Phase 05-cross-chain-social P03 | 192 | 2 tasks | 5 files |
 | Phase 06-mini-app-shell P03 | 3 | 2 tasks | 2 files |
+| Phase 06-mini-app-shell P04 | 8 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Recent decisions affecting current work:
 - [Phase 05-cross-chain-social]: XCHD-01 formally deferred -- cross-chain deposits not implemented, acknowledged in system prompt as coming soon
 - [Phase 05-cross-chain-social]: Settlement notices injected into enrichedUserMessage before assembleContext -- context injection pattern D-10
 - [Phase 06-mini-app-shell]: requestMiniKitPermissions uses walletAuth+getUserInfo: SDK Permission enum only supports notifications/contacts/microphone, not wallet-address
+- [Phase 06-mini-app-shell]: ContactCard onContactSelect prop-drilled from ChatInterface so session and sendMessage are available without Context API
+- [Phase 06-mini-app-shell]: add_contact tool has no verification gate -- saving contacts is ungated per plan spec
 
 ### Pending Todos
 
@@ -117,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T19:59:43.586Z
-Stopped at: Completed 06-mini-app-shell-06-03-PLAN.md
+Last session: 2026-04-04T20:25:59.933Z
+Stopped at: Completed 06-mini-app-shell-06-04-PLAN.md
 Resume file: None

@@ -98,11 +98,12 @@ Plans:
   2. User sees a dark-themed chat interface with neon blue accents and can type and submit messages
   3. AI responses stream token-by-token into the chat UI in real time
   4. User can add, list, and resolve contacts from within the app
-**Plans**: 3 plans
+**Plans**: 4 plans
 Plans:
 - [x] 06-01-PLAN.md — Install streaming deps, rewrite ChatInterface with useChat v5, react-markdown, thinking indicator
 - [x] 06-02-PLAN.md — ContactCard component, MiniKit haptics, Profile World ID verify integration
 - [x] 06-03-PLAN.md — MiniKit Pay for USDC transfers, wallet signing, permission requests
+- [x] 06-04-PLAN.md — Gap closure: env var fix, add_contact + list_contacts tools, contact selection wiring
 **UI hint**: yes
 
 ## Progress
@@ -117,4 +118,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 (backend). Phase 6 runs i
 | 3. Identity | 1/2 | In Progress|  |
 | 4. Financial Ops | 0/? | Not started | - |
 | 5. Cross-Chain & Social | 3/3 | Complete   | 2026-04-04 |
-| 6. Mini App Shell | 3/3 | Complete   | 2026-04-04 |
+| 6. Mini App Shell | 4/4 | Complete   | 2026-04-04 |

@@ -50,7 +50,7 @@ Requirements for hackathon demo. Each maps to roadmap phases.
 - [x] **MAPP-01**: Next.js 14 Mini App runs inside World App via MiniKit 2.0 SDK
 - [x] **MAPP-02**: Chat-first interface with dark theme and neon blue accents
 - [x] **MAPP-03**: Streaming AI responses render token-by-token
-- [ ] **MAPP-04**: Contact management (add, list, resolve)
+- [x] **MAPP-04**: Contact management (add, list, resolve)
 
 ## v2 Requirements
 
@@ -113,7 +113,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MAPP-01 | Phase 6 | Complete |
 | MAPP-02 | Phase 6 | Complete |
 | MAPP-03 | Phase 6 | Complete |
-| MAPP-04 | Phase 6 | Pending |
+| MAPP-04 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 27 total
