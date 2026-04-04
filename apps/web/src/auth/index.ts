@@ -10,6 +10,7 @@ declare module 'next-auth' {
     walletAddress: string;
     username: string;
     profilePictureUrl: string;
+    needsOnboarding: boolean;
   }
 
   interface Session {
@@ -17,6 +18,7 @@ declare module 'next-auth' {
       walletAddress: string;
       username: string;
       profilePictureUrl: string;
+      needsOnboarding: boolean;
     } & DefaultSession['user'];
   }
 }
@@ -61,12 +63,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.log('Invalid final payload');
           return null;
         }
+
         // Optionally, fetch the user info from your own database
         const userInfo = await MiniKit.getUserInfo(finalPayload.address);
 
+        const walletAddress = result.siweMessageData.address;
+
+        // D-01: Provision user in backend — get-or-create by wallet address, returns UUID
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+        const provisionRes = await fetch(`${apiUrl}/api/users/provision`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress,
+            displayName: userInfo?.username ?? null,
+          }),
+        });
+
+        // D-04: If provisioning fails, fail auth entirely
+        if (!provisionRes.ok) {
+          console.error('[auth] provisioning failed:', await provisionRes.text());
+          return null;
+        }
+
+        const { userId, needsOnboarding } = await provisionRes.json();
+
         return {
-          id: finalPayload.address,
-          ...userInfo,
+          id: userId,                              // D-13: UUID from DB
+          walletAddress,                           // D-13: separate field
+          needsOnboarding,                         // D-15: computed flag
+          username: userInfo?.username ?? '',
+          profilePictureUrl: userInfo?.profilePictureUrl ?? '',
         };
       },
     }),
@@ -74,10 +101,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.userId = user.id;
-        token.walletAddress = user.walletAddress;
+        token.userId = user.id;                     // UUID
+        token.walletAddress = user.walletAddress;   // 0x address
         token.username = user.username;
         token.profilePictureUrl = user.profilePictureUrl;
+        token.needsOnboarding = user.needsOnboarding;
       }
 
       return token;
@@ -86,8 +114,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.userId) {
         session.user.id = token.userId as string;
         session.user.walletAddress = token.walletAddress as string;
-        session.user.username = token.username as string;
-        session.user.profilePictureUrl = token.profilePictureUrl as string;
+        session.user.username = (token.username as string) ?? '';
+        session.user.profilePictureUrl = (token.profilePictureUrl as string) ?? '';
+        session.user.needsOnboarding = (token.needsOnboarding as boolean) ?? false;
       }
 
       return session;
