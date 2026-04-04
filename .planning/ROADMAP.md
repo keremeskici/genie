@@ -13,7 +13,7 @@ Genie is built component-by-component in 6 phases optimized for a 36-hour hackat
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Agent Infra** - 0G Compute Adapter + Vercel AI SDK loop with dual-model routing (completed 2026-04-04)
-- [x] **Phase 2: Data Layer** - Supabase + Drizzle schemas, 0G Storage KV for agent memory (completed 2026-04-04)
+- [ ] **Phase 2: Data Layer** - Supabase + Drizzle schemas, 0G Storage KV for agent memory (gap closure in progress)
 - [ ] **Phase 3: Identity** - World ID 4.0 verification and World Agent Kit classification
 - [ ] **Phase 4: Financial Ops** - Smart contracts, balance check, send USDC, contact resolution
 - [ ] **Phase 5: Cross-Chain & Social** - Arc CCTP deposits, spending tracking, debt management
@@ -44,11 +44,12 @@ Plans:
   1. After a conversation, user financial preferences and goals written to 0G Storage KV are readable in a subsequent fresh session
   2. Drizzle schema migrations apply cleanly to the Supabase database with correct tables for users, contacts, transactions, and debts
   3. Agent context loaded from 0G KV at session start is correctly injected into the user-context layer of the three-layer prompt
-**Plans**: 3 plans
+**Plans**: 4 plans
 Plans:
 - [x] 02-01-PLAN.md — Drizzle schema (users, contacts, transactions, debts), DB client, drizzle-kit push config
 - [x] 02-02-PLAN.md — 0G KV service layer (AgentMemory type, read/write helpers, graceful fallback)
 - [x] 02-03-PLAN.md — Context wiring (extend assembleContext with KV memory, cache in chat route)
+- [ ] 02-04-PLAN.md — Gap closure: wire writeMemory via update_memory tool, cache invalidation
 
 ### Phase 3: Identity
 **Goal**: World ID proof-of-human is verified server-side and controls what actions users can take
@@ -105,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (backend). Phase 6 ru
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Agent Infra | 2/2 | Complete   | 2026-04-04 |
-| 2. Data Layer | 3/3 | Complete   | 2026-04-04 |
+| 2. Data Layer | 3/4 | Gap closure | - |
 | 3. Identity | 0/? | Not started | - |
 | 4. Financial Ops | 0/? | Not started | - |
 | 5. Cross-Chain & Social | 0/? | Not started | - |
