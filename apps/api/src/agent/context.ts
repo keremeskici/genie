@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { CoreMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 import type { AgentMemory } from '../kv/types';
 
 export interface UserContext {
@@ -34,9 +34,9 @@ export function loadSystemPrompt(): string {
 export function assembleContext(
   systemPrompt: string,
   userContext: UserContext,
-  history: CoreMessage[],
+  history: ModelMessage[],
   userMessage: string,
-): { system: string; messages: CoreMessage[] } {
+): { system: string; messages: ModelMessage[] } {
   const memoryStr = userContext.memory
     ? `, goals=${userContext.memory.activeGoals.length}, profile=${JSON.stringify(userContext.memory.financialProfile)}`
     : '';

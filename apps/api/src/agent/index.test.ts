@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { CoreMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 
 // Mock all dependencies before imports
 vi.mock('ai', () => ({
@@ -65,14 +65,14 @@ import { applyWindow } from './window';
 
 describe('runAgent', () => {
   const mockModel = { type: 'language-model', modelId: 'mock-model' } as any;
-  const mockMessages: CoreMessage[] = [{ role: 'user', content: 'what is my balance?' }];
+  const mockMessages: ModelMessage[] = [{ role: 'user', content: 'what is my balance?' }];
   const mockAssembledCtx = {
     system: 'mock system prompt',
     messages: [
       { role: 'user', content: '[User context: wallet=0x0, name=User, threshold=$25]' },
       { role: 'assistant', content: 'Understood.' },
       { role: 'user', content: 'what is my balance?' },
-    ] as CoreMessage[],
+    ] as ModelMessage[],
   };
   const mockWindowedMessages = mockAssembledCtx.messages;
 
@@ -96,7 +96,7 @@ describe('runAgent', () => {
   });
 
   it('calls assembleContext with system prompt, stub user context, history (all messages except last), and user message', async () => {
-    const multiMessages: CoreMessage[] = [
+    const multiMessages: ModelMessage[] = [
       { role: 'user', content: 'previous message' },
       { role: 'assistant', content: 'previous response' },
       { role: 'user', content: 'what is my balance?' },
@@ -140,14 +140,14 @@ describe('runAgent', () => {
 
 describe('runAgent — update_memory tool registration', () => {
   const mockModel = { type: 'language-model', modelId: 'mock-model' } as any;
-  const mockMessages: CoreMessage[] = [{ role: 'user', content: 'I earn 5000 a month' }];
+  const mockMessages: ModelMessage[] = [{ role: 'user', content: 'I earn 5000 a month' }];
   const mockAssembledCtx = {
     system: 'mock system prompt',
     messages: [
       { role: 'user', content: '[User context]' },
       { role: 'assistant', content: 'Understood.' },
       { role: 'user', content: 'I earn 5000 a month' },
-    ] as CoreMessage[],
+    ] as ModelMessage[],
   };
 
   beforeEach(() => {

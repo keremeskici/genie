@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { applyWindow, isSticky } from './window';
-import type { CoreMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 
-function makeMsg(role: CoreMessage['role'], content: string): CoreMessage {
-  return { role, content } as CoreMessage;
+function makeMsg(role: ModelMessage['role'], content: string): ModelMessage {
+  return { role, content } as ModelMessage;
 }
 
-function makeMessages(count: number, role: CoreMessage['role'] = 'user'): CoreMessage[] {
+function makeMessages(count: number, role: ModelMessage['role'] = 'user'): ModelMessage[] {
   return Array.from({ length: count }, (_, i) => makeMsg(role, `message ${i}`));
 }
 
@@ -43,7 +43,7 @@ describe('applyWindow', () => {
   it('preserves sticky tool-role messages — never drops them', () => {
     // 38 regular user messages + 2 tool messages = 40 (at limit, no drop needed)
     // Add 1 more to go over
-    const msgs: CoreMessage[] = [
+    const msgs: ModelMessage[] = [
       ...makeMessages(38),
       makeMsg('tool', 'balance: 100 USDC'),
       makeMsg('tool', 'tx confirmed'),
@@ -57,7 +57,7 @@ describe('applyWindow', () => {
   });
 
   it('preserves sticky "yes, send" confirmation messages — never drops them', () => {
-    const msgs: CoreMessage[] = [
+    const msgs: ModelMessage[] = [
       ...makeMessages(38),
       makeMsg('user', 'yes, send it'),
       makeMsg('user', 'extra 1'),
@@ -71,7 +71,7 @@ describe('applyWindow', () => {
   });
 
   it('preserves sticky "no, cancel" messages — never drops them', () => {
-    const msgs: CoreMessage[] = [
+    const msgs: ModelMessage[] = [
       ...makeMessages(38),
       makeMsg('user', 'no, cancel'),
       makeMsg('user', 'extra 1'),

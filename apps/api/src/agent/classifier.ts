@@ -1,5 +1,5 @@
 import { generateText } from 'ai';
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 import { glm5, deepseekV3 } from './providers';
 
 export type Intent = 'planning' | 'action';
@@ -33,6 +33,6 @@ export async function classifyIntent(userMessage: string): Promise<Intent> {
  * - 'action' → DeepSeek V3 (fast tool execution)
  * - 'planning' → GLM-5 (quality reasoning)
  */
-export function selectModel(intent: Intent): LanguageModelV1 {
+export function selectModel(intent: Intent): LanguageModel {
   return intent === 'action' ? deepseekV3 : glm5;
 }

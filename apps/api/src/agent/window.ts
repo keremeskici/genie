@@ -1,4 +1,4 @@
-import type { CoreMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 
 /**
  * Returns true if a message should never be dropped from the sliding window.
@@ -7,7 +7,7 @@ import type { CoreMessage } from 'ai';
  * - user confirmations ("yes, send" / "no, cancel")
  * - system messages
  */
-export function isSticky(msg: CoreMessage): boolean {
+export function isSticky(msg: ModelMessage): boolean {
   if (msg.role === 'tool') return true;
   if (msg.role === 'system') return true;
   if (msg.role === 'user' && typeof msg.content === 'string') {
@@ -26,7 +26,7 @@ export function isSticky(msg: CoreMessage): boolean {
  * @param limit - Maximum number of messages to keep (default: 40)
  * @returns Trimmed message array
  */
-export function applyWindow(messages: CoreMessage[], limit: number = 40): CoreMessage[] {
+export function applyWindow(messages: ModelMessage[], limit: number = 40): ModelMessage[] {
   if (messages.length <= limit) return messages;
 
   const excess = messages.length - limit;

@@ -1,5 +1,5 @@
 import { streamText, stepCountIs } from 'ai';
-import type { CoreMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 import { classifyIntent, selectModel } from './classifier';
 import { assembleContext, loadSystemPrompt, type UserContext } from './context';
 import { applyWindow } from './window';
@@ -22,7 +22,7 @@ export type { UserContext };
 const systemPrompt = loadSystemPrompt();
 
 export interface ChatRequest {
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   userId?: string;
   userContext?: UserContext;
   settlementNotices?: Array<{ counterpartyWallet: string; amountUsd: string; description: string | null }>;

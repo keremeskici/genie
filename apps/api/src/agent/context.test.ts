@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { assembleContext } from './context';
 import type { UserContext } from './context';
-import type { CoreMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 import { DEFAULT_MEMORY } from '../kv/types';
 import type { AgentMemory } from '../kv/types';
 
@@ -15,7 +15,7 @@ const mockUserContext: UserContext = {
 
 const mockSystemPrompt = 'You are Genie. Current date: 2026-04-04';
 
-const mockHistory: CoreMessage[] = [
+const mockHistory: ModelMessage[] = [
   { role: 'user', content: 'What is my balance?' },
   { role: 'assistant', content: 'Your balance is 100 USDC.' },
 ];
