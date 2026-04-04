@@ -13,7 +13,7 @@ Requirements for hackathon demo. Each maps to roadmap phases.
 - [x] **WRID-02**: Server validates World ID proofs before allowing gated actions (send, debt, goals)
 - [x] **WRID-03**: Unverified users can chat, view balance, and receive money
 - [x] **WRID-04**: Verified users unlock send money, debt tracking, and agent automation
-- [ ] **WRID-05**: Agent Kit classifies verified user agents as human-backed and unverified as bot
+- [x] **WRID-05**: Agent Kit classifies verified user agents as human-backed and unverified as bot
 
 ### AI Agent & Inference
 
@@ -98,7 +98,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WRID-02 | Phase 3 | Complete |
 | WRID-03 | Phase 3 | Complete |
 | WRID-04 | Phase 3 | Complete |
-| WRID-05 | Phase 3 | Pending |
+| WRID-05 | Phase 3 | Complete |
 | FOPS-01 | Phase 4 | Pending |
 | FOPS-02 | Phase 4 | Pending |
 | FOPS-03 | Phase 4 | Pending |

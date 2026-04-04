@@ -63,7 +63,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 03-01-PLAN.md — Verify endpoint + UserContext isVerified extension + cache invalidation
-- [ ] 03-02-PLAN.md — Agent Kit classification, system prompt verification awareness, gating guard utility
+- [x] 03-02-PLAN.md — Agent Kit classification, system prompt verification awareness, gating guard utility
 
 ### Phase 4: Financial Ops
 **Goal**: Users can check their USDC balance and send USDC to contacts or addresses through natural language — backed by deployed smart contracts
