@@ -1,0 +1,36 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-headline: var(--font-plus-jakarta-sans);
+  --font-body: var(--font-manrope);
+  --font-label: var(--font-plus-jakarta-sans);
+
+  /* Brutalist fintech palette */
+  --color-background: #000000;
+  --color-surface: #171717;
+  --color-text: #ffffff;
+  --color-accent: #ccff00;
+}
+
+body {
+  background-color: #000000;
+  color: #ffffff;
+  font-family: var(--font-manrope), sans-serif;
+  min-height: 100dvh;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.chat-bubble-tail {
+  position: absolute;
+  bottom: 0;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  background-color: inherit;
+  clip-path: polygon(100% 0, 0% 100%, 100% 100%);
+}
