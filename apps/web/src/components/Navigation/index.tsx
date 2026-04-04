@@ -62,8 +62,8 @@ export const Navigation = () => {
   const indicatorLeftPct = ((activeIndex * 2 + 1) / (TABS.length * 2)) * 100;
 
   return (
-    <nav className="relative flex justify-around items-center w-full px-2 py-3">
-      {/* Single sliding indicator bar */}
+    <nav className="relative flex items-center w-full py-3">
+      {/* Single sliding indicator — with equal-width buttons, centers are exactly at (2i+1)/(2N)*100% */}
       <span
         className="absolute top-0 h-[2px] w-6 bg-[#CCFF00] transition-all duration-300 ease-in-out"
         style={{ left: `${indicatorLeftPct}%`, transform: 'translateX(-50%)' }}
@@ -75,7 +75,7 @@ export const Navigation = () => {
           <button
             key={tab.value}
             onClick={() => router.push(tab.route)}
-            className="flex flex-col items-center gap-1 px-4 py-1 transition-all duration-150 active:scale-95"
+            className="flex flex-col items-center justify-center gap-1 w-1/4 py-1 transition-all duration-150 active:scale-95"
             aria-label={tab.label}
           >
             <span className={isActive ? 'text-[#CCFF00]' : 'text-white/40'}>
