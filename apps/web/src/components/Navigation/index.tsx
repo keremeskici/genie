@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const TABS = [
   {
@@ -42,7 +43,6 @@ const PATH_TO_TAB: Record<string, string> = {
 };
 
 export const Navigation = () => {
-  const router = useRouter();
   const pathname = usePathname();
   const activeTab = PATH_TO_TAB[pathname] ?? 'home';
   const activeIndex = TABS.findIndex((t) => t.value === activeTab);
@@ -63,9 +63,10 @@ export const Navigation = () => {
       {TABS.map((tab) => {
         const isActive = activeTab === tab.value;
         return (
-          <button
+          <Link
             key={tab.value}
-            onClick={() => router.push(tab.route)}
+            href={tab.route}
+            prefetch={true}
             className="flex flex-col items-center justify-center gap-1 w-1/3 py-1 transition-all duration-150 active:scale-95"
             aria-label={tab.label}
           >
@@ -79,7 +80,7 @@ export const Navigation = () => {
             >
               {tab.label}
             </span>
-          </button>
+          </Link>
         );
       })}
     </nav>

@@ -31,34 +31,28 @@ const PLACEHOLDERS = [
   "Let's cook.",
 ];
 
-const NAV_HEIGHT = 108;
-
 export const ChatInterface = ({
   userAvatarSrc = '',
   onInsightsClick,
 }: ChatInterfaceProps) => {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
-  const [inputBottom, setInputBottom] = useState(NAV_HEIGHT);
+  const [canScroll, setCanScroll] = useState(false);
   const [placeholder] = useState(
     () => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)],
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const onResize = () => {
-      const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
-      setInputBottom(Math.max(NAV_HEIGHT, keyboardHeight + 8));
-    };
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
-    return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
-    };
-  }, []);
+    const el = scrollRef.current;
+    if (!el) return;
+    const check = () => setCanScroll(el.scrollHeight > el.clientHeight);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,14 +74,12 @@ export const ChatInterface = ({
   };
 
   return (
-    <div
-      className="relative flex flex-col bg-background text-white font-body overflow-hidden touch-none"
-      style={{ height: '100dvh', maxHeight: '100dvh' }}
-    >
+    <div className="flex flex-col bg-background text-white font-body h-full">
       {/* Scrollable messages */}
       <div
-        className="flex-1 overflow-y-auto overscroll-contain pt-6 pb-6 px-6"
-        style={{ touchAction: 'pan-y' }}
+        ref={scrollRef}
+        className={`flex-1 min-h-0 overscroll-contain pt-6 pb-4 px-6 ${canScroll ? 'overflow-y-auto' : 'overflow-y-hidden'}`}
+        style={{ touchAction: canScroll ? 'pan-y' : 'none' }}
       >
         <div className="flex flex-col gap-10 max-w-md mx-auto">
           {messages.map((message) =>
@@ -101,11 +93,8 @@ export const ChatInterface = ({
         </div>
       </div>
 
-      {/* Chat input */}
-      <div
-        className="fixed left-0 w-full px-6 z-40 transition-[bottom] duration-75"
-        style={{ bottom: inputBottom }}
-      >
+      {/* Chat input — in-flow so it never scrolls with messages */}
+      <div className="flex-shrink-0 px-6 py-3 bg-background touch-none" style={{ touchAction: 'none' }}>
         <div className="max-w-md mx-auto">
           <div className="bg-surface p-2 flex items-center gap-2">
             <input
@@ -133,7 +122,15 @@ export const ChatInterface = ({
 function UserMessage({ content }: { content: string }) {
   return (
     <div className="flex justify-end pl-12">
-      <div className="bg-surface border border-white/10 p-4 rounded-t-2xl rounded-bl-2xl text-white">
+      <div className="relative bg-surface border border-white/10 p-4 rounded-t-2xl rounded-bl-2xl text-white">
+        <span
+          className="absolute bottom-4 -right-[9px] w-0 h-0"
+          style={{
+            borderTop: '8px solid transparent',
+            borderBottom: '8px solid transparent',
+            borderLeft: '10px solid #171717',
+          }}
+        />
         <p className="text-sm font-medium">{content}</p>
       </div>
     </div>

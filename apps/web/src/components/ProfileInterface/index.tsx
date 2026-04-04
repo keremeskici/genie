@@ -35,10 +35,9 @@ export const ProfileInterface = () => {
 
   return (
     <div
-      className="flex flex-col bg-background text-white font-body overflow-hidden touch-none"
-      style={{ height: '100dvh' }}
+      className="flex flex-col bg-background text-white font-body overflow-hidden touch-none h-full"
     >
-    <div className="flex-1 overflow-y-auto overscroll-contain pb-[108px]" style={{ touchAction: 'pan-y' }}>
+    <div className="flex-1 overflow-y-auto overscroll-contain" style={{ touchAction: 'pan-y' }}>
       {/* ── Header ── */}
       <div className="px-6 pt-10 pb-6">
         <p className="font-headline text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">
@@ -74,10 +73,8 @@ export const ProfileInterface = () => {
           Set the maximum amount Genie can spend per transaction on your behalf.
         </p>
         <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-sm font-bold">
-              $
-            </span>
+          <div className="flex-1 flex items-center bg-surface border border-white/10 px-4 focus-within:border-accent/50 transition-colors">
+            <span className="text-white/40 text-sm font-bold mr-1 flex-shrink-0">$</span>
             <input
               type="number"
               min="0"
@@ -85,7 +82,7 @@ export const ProfileInterface = () => {
               value={spendingLimit}
               onChange={(e) => setSpendingLimit(e.target.value)}
               placeholder="0.00"
-              className="w-full bg-surface border border-white/10 pl-8 pr-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-accent/50 transition-colors appearance-none"
+              className="flex-1 bg-transparent py-3 text-sm text-white placeholder:text-white/30 outline-none appearance-none"
             />
           </div>
           <button

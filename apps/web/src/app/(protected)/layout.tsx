@@ -17,8 +17,10 @@ export default async function TabsLayout({
 
   return (
     <Page>
-      {children}
-      <Page.Footer className="px-0 fixed bottom-0 w-full bg-[#171717] border-t border-white/10">
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {children}
+      </div>
+      <Page.Footer className="px-0 flex-shrink-0 w-full bg-[#171717] border-t border-white/10 touch-none">
         <Navigation />
       </Page.Footer>
     </Page>
