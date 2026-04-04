@@ -7,14 +7,21 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@0glabs/0g-ts-sdk": "^0.3.3",
     "@ai-sdk/openai": "^3.0.50",
     "@hono/node-server": "^1.19.12",
     "ai": "^6.0.146",
+    "drizzle-orm": "^0.45.2",
+    "ethers": "^6.16.0",
     "hono": "^4.12.10",
+    "postgres": "^3.4.8",
     "zod": "^3.24.6"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.4.3",
     "@types/node": "latest",
+    "dotenv": "^17.4.0",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.21.0",
     "typescript": "^5.0.0",
     "vitest": "latest"
