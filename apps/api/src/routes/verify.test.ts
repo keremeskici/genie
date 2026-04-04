@@ -22,19 +22,24 @@ vi.mock('@genie/db', async (importOriginal) => {
   };
 });
 
-// Mock chat cache invalidation
+// Mock chat cache invalidation and resolveUserId
 const mockInvalidate = vi.fn();
+const mockResolveUserId = vi.fn();
 vi.mock('./chat', () => ({
   invalidateContextCache: (...args: unknown[]) => mockInvalidate(...args),
+  resolveUserId: (...args: unknown[]) => mockResolveUserId(...args),
+}));
+
+// Mock env config
+vi.mock('../config/env', () => ({
+  WORLD_APP_ID: 'app_test123',
+  WORLD_ACTION: 'verify-human',
+  WORLD_VERIFY_API_URL: 'https://developer.world.org/api/v2/verify',
 }));
 
 // Mock global fetch for World ID portal
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
-
-// Set env vars
-process.env.WORLD_APP_ID = 'app_test123';
-process.env.WORLD_ACTION = 'verify-human';
 
 // Import after mocks are set up
 const { verifyRoute } = await import('./verify');
@@ -53,6 +58,8 @@ const validBody = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockSet.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
+  // By default, resolveUserId returns the same UUID passed in
+  mockResolveUserId.mockResolvedValue(validBody.userId);
 });
 
 describe('POST /verify', () => {
@@ -70,7 +77,7 @@ describe('POST /verify', () => {
   });
 
   it('returns 404 USER_NOT_FOUND when userId not in DB', async () => {
-    mockSelect.mockResolvedValue([]);
+    mockResolveUserId.mockResolvedValue(null);
     const req = new Request('http://localhost/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
