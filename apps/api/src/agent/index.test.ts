@@ -22,7 +22,15 @@ vi.mock('./window', () => ({
 }));
 
 vi.mock('../tools/get-balance', () => ({
-  getBalanceTool: { description: 'mock tool' },
+  createGetBalanceTool: vi.fn(() => ({ description: 'mock get_balance tool' })),
+}));
+
+vi.mock('../tools/resolve-contact', () => ({
+  createResolveContactTool: vi.fn(() => ({ description: 'mock resolve_contact tool' })),
+}));
+
+vi.mock('../tools/send-usdc', () => ({
+  createSendUsdcTool: vi.fn(() => ({ description: 'mock send_usdc tool' })),
 }));
 
 import { runAgent } from './index';

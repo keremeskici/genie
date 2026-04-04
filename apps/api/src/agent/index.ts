@@ -3,7 +3,9 @@ import type { CoreMessage } from 'ai';
 import { classifyIntent, selectModel } from './classifier';
 import { assembleContext, loadSystemPrompt, type UserContext } from './context';
 import { applyWindow } from './window';
-import { getBalanceTool } from '../tools/get-balance';
+import { createGetBalanceTool } from '../tools/get-balance';
+import { createResolveContactTool } from '../tools/resolve-contact';
+import { createSendUsdcTool } from '../tools/send-usdc';
 import { createUpdateMemoryTool } from '../tools/update-memory';
 import { DEFAULT_MEMORY } from '../kv/types';
 import { PLANNING_MODEL, ACTION_MODEL } from './providers';
@@ -58,6 +60,18 @@ export async function runAgent(request: ChatRequest) {
     isHumanBacked: false,
   };
 
+  // Create factory tools with per-request context
+  // get_balance is always available (ungated — checking balance works for all users)
+  const getBalanceTool = createGetBalanceTool(resolvedUserContext);
+
+  // resolve_contact and send_usdc require userId (need DB access + verification gate)
+  const resolveContactTool = request.userId
+    ? createResolveContactTool(request.userId)
+    : undefined;
+  const sendUsdcTool = request.userId
+    ? createSendUsdcTool(request.userId, resolvedUserContext)
+    : undefined;
+
   // Create update_memory tool with current user's memory context
   // Uses factory pattern — each request gets its own tool with userId + memory snapshot
   // Only available when there is a userId (anonymous users cannot persist memory)
@@ -84,6 +98,8 @@ export async function runAgent(request: ChatRequest) {
     messages: windowedMessages,
     tools: {
       get_balance: getBalanceTool,
+      ...(resolveContactTool ? { resolve_contact: resolveContactTool } : {}),
+      ...(sendUsdcTool ? { send_usdc: sendUsdcTool } : {}),
       ...(updateMemoryTool ? { update_memory: updateMemoryTool } : {}),
     },
     maxOutputTokens: MAX_OUTPUT_TOKENS,
