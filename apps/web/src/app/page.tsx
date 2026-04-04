@@ -20,17 +20,23 @@ export default function Home() {
     if (!isInstalled || hasAttemptedAuth.current) return;
     hasAttemptedAuth.current = true;
 
-    // TODO: switch to localStorage check once DB is hooked up
-    // const destination = () =>
-    //   localStorage.getItem('genie_onboarding_done') ? '/home' : '/onboarding';
-    const destination = () => '/onboarding';
-
     getSession().then((session) => {
       if (session) {
-        router.push(destination());
+        if (session.user?.needsOnboarding) {
+          router.push('/onboarding');
+        } else {
+          router.push('/home');
+        }
       } else {
         walletAuth()
-          .then(() => router.push(destination()))
+          .then(async () => {
+            const freshSession = await getSession();
+            if (freshSession?.user?.needsOnboarding) {
+              router.push('/onboarding');
+            } else {
+              router.push('/home');
+            }
+          })
           .catch((error) => console.error('Auto wallet authentication error', error));
       }
     });
