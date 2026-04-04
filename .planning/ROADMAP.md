@@ -100,8 +100,8 @@ Plans:
   4. User can add, list, and resolve contacts from within the app
 **Plans**: 3 plans
 Plans:
-- [ ] 06-01-PLAN.md — Install streaming deps, rewrite ChatInterface with useChat v5, react-markdown, thinking indicator
-- [ ] 06-02-PLAN.md — ContactCard component, MiniKit haptics, Profile World ID verify integration
+- [x] 06-01-PLAN.md — Install streaming deps, rewrite ChatInterface with useChat v5, react-markdown, thinking indicator
+- [x] 06-02-PLAN.md — ContactCard component, MiniKit haptics, Profile World ID verify integration
 - [ ] 06-03-PLAN.md — MiniKit Pay for USDC transfers, wallet signing, permission requests
 **UI hint**: yes
 
@@ -117,4 +117,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 (backend). Phase 6 runs i
 | 3. Identity | 1/2 | In Progress|  |
 | 4. Financial Ops | 0/? | Not started | - |
 | 5. Cross-Chain & Social | 3/3 | Complete   | 2026-04-04 |
-| 6. Mini App Shell | 0/3 | Not started | - |
+| 6. Mini App Shell | 2/3 | In Progress | 2026-04-04 |
