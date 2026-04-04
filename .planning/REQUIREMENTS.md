@@ -20,10 +20,10 @@ Requirements for hackathon demo. Each maps to roadmap phases.
 - [x] **AGEN-01**: 0G Compute Adapter routes inference to decentralized GPU network
 - [x] **AGEN-02**: GLM-5 handles financial planning and advisory responses
 - [x] **AGEN-03**: DeepSeek V3 handles fast tool execution (send, balance, resolve)
-- [ ] **AGEN-04**: Vercel AI SDK agent loop with tool calling and streaming responses
-- [ ] **AGEN-05**: Three-layer context: system prompt + user context + conversation history
+- [x] **AGEN-04**: Vercel AI SDK agent loop with tool calling and streaming responses
+- [x] **AGEN-05**: Three-layer context: system prompt + user context + conversation history
 - [x] **AGEN-06**: Sliding window with sticky messages keeps context bounded
-- [ ] **AGEN-07**: 0G Storage KV persists user context (financial personality, goals, preferences) across sessions
+- [x] **AGEN-07**: 0G Storage KV persists user context (financial personality, goals, preferences) across sessions
 
 ### Financial Operations
 
@@ -49,7 +49,7 @@ Requirements for hackathon demo. Each maps to roadmap phases.
 
 - [x] **MAPP-01**: Next.js 14 Mini App runs inside World App via MiniKit 2.0 SDK
 - [x] **MAPP-02**: Chat-first interface with dark theme and neon blue accents
-- [ ] **MAPP-03**: Streaming AI responses render token-by-token
+- [x] **MAPP-03**: Streaming AI responses render token-by-token
 - [ ] **MAPP-04**: Contact management (add, list, resolve)
 
 ## v2 Requirements
@@ -90,10 +90,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AGEN-01 | Phase 1 | Complete |
 | AGEN-02 | Phase 1 | Complete |
 | AGEN-03 | Phase 1 | Complete |
-| AGEN-04 | Phase 7 | Pending |
-| AGEN-05 | Phase 7 | Pending |
+| AGEN-04 | Phase 7 | Complete |
+| AGEN-05 | Phase 7 | Complete |
 | AGEN-06 | Phase 1 | Complete |
-| AGEN-07 | Phase 7 | Pending |
+| AGEN-07 | Phase 7 | Complete |
 | WRID-01 | Phase 8 | Pending |
 | WRID-02 | Phase 8 | Pending |
 | WRID-03 | Phase 8 | Pending |
@@ -112,7 +112,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEBT-02 | Phase 7 | Pending |
 | MAPP-01 | Phase 6 | Complete |
 | MAPP-02 | Phase 6 | Complete |
-| MAPP-03 | Phase 7 | Pending |
+| MAPP-03 | Phase 7 | Complete |
 | MAPP-04 | Phase 7 | Pending |
 
 **Coverage:**

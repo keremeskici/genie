@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: Financial Ops** - Smart contracts, balance check, send USDC, contact resolution
 - [x] **Phase 5: Cross-Chain & Social** - Arc CCTP deposits, spending tracking, debt management (completed 2026-04-04)
 - [x] **Phase 6: Mini App Shell** - Next.js Mini App, MiniKit 2.0, chat UI, streaming (parallel track) (completed 2026-04-04)
-- [ ] **Phase 7: API Wiring** - Path alignment + user provisioning to fix frontend-backend integration (gap closure)
+- [x] **Phase 7: API Wiring** - Path alignment + user provisioning to fix frontend-backend integration (gap closure) (completed 2026-04-04)
 - [ ] **Phase 8: Identity Wiring** - Verify-proof fix + auth boundary enforcement (gap closure)
 - [ ] **Phase 9: Confirmation Flow** - Wire frontend confirm UI for over-threshold USDC transfers (gap closure)
 
@@ -158,6 +158,6 @@ Gap closure phases 7-9 run sequentially after all original phases.
 | 4. Financial Ops | 0/? | Not started | - |
 | 5. Cross-Chain & Social | 3/3 | Complete   | 2026-04-04 |
 | 6. Mini App Shell | 4/4 | Complete   | 2026-04-04 |
-| 7. API Wiring | 0/? | Not started | - |
+| 7. API Wiring | 2/1 | Complete   | 2026-04-04 |
 | 8. Identity Wiring | 0/? | Not started | - |
 | 9. Confirmation Flow | 0/? | Not started | - |
