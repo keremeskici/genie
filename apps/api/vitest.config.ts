@@ -11,6 +11,7 @@ export default defineConfig({
       OG_ACTION_MODEL: 'test-action-model',
       OG_KV_CLIENT_URL: 'http://localhost:6789',
       OG_KV_STREAM_ID: '0xtest-stream-id',
+      DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
     },
   },
 });

@@ -6,6 +6,8 @@ import { applyWindow } from './window';
 import { getBalanceTool } from '../tools/get-balance';
 import { PLANNING_MODEL, ACTION_MODEL } from './providers';
 
+export type { UserContext };
+
 const MAX_OUTPUT_TOKENS = parseInt(process.env.MAX_OUTPUT_TOKENS ?? '2048', 10);
 const WINDOW_LIMIT = parseInt(process.env.WINDOW_LIMIT ?? '40', 10);
 
@@ -15,6 +17,7 @@ const systemPrompt = loadSystemPrompt();
 export interface ChatRequest {
   messages: CoreMessage[];
   userId?: string;
+  userContext?: UserContext;
 }
 
 /**
@@ -44,8 +47,8 @@ export async function runAgent(request: ChatRequest) {
   );
 
   // Step 3: Assemble three-layer context (AGEN-05)
-  // Phase 1 uses stub user context — real context comes from Phase 2 (0G KV)
-  const stubUserContext: UserContext = {
+  // Use provided user context (from chat route cache) or fall back to stub
+  const resolvedUserContext: UserContext = request.userContext ?? {
     walletAddress: '0x0000000000000000000000000000000000000000',
     displayName: 'User',
     autoApproveUsd: 25,
@@ -53,7 +56,7 @@ export async function runAgent(request: ChatRequest) {
 
   // Separate history from the current message
   const history = messages.slice(0, -1);
-  const ctx = assembleContext(systemPrompt, stubUserContext, history, userMessage);
+  const ctx = assembleContext(systemPrompt, resolvedUserContext, history, userMessage);
 
   // Step 4: Apply sliding window (AGEN-06)
   const windowedMessages = applyWindow(ctx.messages, WINDOW_LIMIT);
