@@ -1,26 +1,21 @@
-import { KvClient, Indexer, Batcher } from '@0glabs/0g-ts-sdk';
-import type { FixedPriceFlow } from '@0glabs/0g-ts-sdk';
+import { Indexer, Batcher, getFlowContract } from '@0gfoundation/0g-ts-sdk';
 import { ethers } from 'ethers';
-import { OG_KV_CLIENT_URL, OG_PRIVATE_KEY, OG_KV_STREAM_ID } from '../config/env';
+import { OG_PRIVATE_KEY, OG_KV_STREAM_ID } from '../config/env';
 
-const EVM_RPC = 'https://evmrpc-testnet.0g.ai';
-const INDEXER_RPC = 'https://indexer-storage-testnet-turbo.0g.ai';
+// 0G Mainnet endpoints
+const EVM_RPC = 'https://evmrpc.0g.ai';
+const INDEXER_RPC = 'https://indexer-storage-turbo.0g.ai';
 
-/**
- * Create a KvClient for reads. No wallet needed — reads are free.
- * Returns null if OG_KV_CLIENT_URL is not set (graceful degradation).
- */
-export function createKvReader(): KvClient | null {
-  if (!OG_KV_CLIENT_URL) {
-    console.warn('[kv] OG_KV_CLIENT_URL not set — KV reads disabled');
-    return null;
-  }
-  return new KvClient(OG_KV_CLIENT_URL);
+/** Shared indexer instance (stateless HTTP client, safe to reuse). */
+let _indexer: InstanceType<typeof Indexer> | null = null;
+function getIndexer(): InstanceType<typeof Indexer> {
+  if (!_indexer) _indexer = new Indexer(INDEXER_RPC);
+  return _indexer;
 }
 
 /**
- * Create a Batcher for writes. Requires OG_PRIVATE_KEY with testnet gas.
- * Returns the batcher and stream ID needed for write operations.
+ * Create a Batcher for writes. Requires OG_PRIVATE_KEY with mainnet A0GI for gas.
+ * Auto-discovers the flow contract from storage nodes.
  * Returns null if env vars are missing (graceful degradation).
  */
 export async function createKvWriter(): Promise<{
@@ -36,16 +31,38 @@ export async function createKvWriter(): Promise<{
 
   const provider = new ethers.JsonRpcProvider(EVM_RPC);
   const signer = new ethers.Wallet(privateKey, provider);
-  const indexer = new Indexer(INDEXER_RPC);
+  const indexer = getIndexer();
 
   const [nodes, nodesErr] = await indexer.selectNodes(1);
-  if (nodesErr) {
+  if (nodesErr || !nodes?.length) {
     console.error('[kv] selectNodes failed:', nodesErr);
     return null;
   }
 
-  // flowContract: pass undefined — SDK auto-discovers via indexer (see RESEARCH open question 2)
+  // Auto-discover flow contract address from a storage node
+  const status = await nodes[0].getStatus();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const batcher = new Batcher(1, nodes, undefined as unknown as FixedPriceFlow, EVM_RPC);
+  const flowContract = getFlowContract(status.networkIdentity.flowAddress, signer as any);
+
+  const batcher = new Batcher(1, nodes, flowContract, EVM_RPC);
   return { batcher, streamId };
+}
+
+/**
+ * Download raw data from 0G storage by root hash via the indexer.
+ * Returns the file contents as a Buffer, or null on failure.
+ */
+export async function downloadFromStorage(rootHash: string): Promise<Buffer | null> {
+  const indexer = getIndexer();
+  const tmpPath = `/tmp/0g-kv-${rootHash.slice(0, 16)}.bin`;
+
+  try {
+    const fs = await import('fs');
+    await indexer.download(rootHash, tmpPath, false);
+    const data = fs.readFileSync(tmpPath);
+    fs.unlinkSync(tmpPath);
+    return Buffer.from(data);
+  } catch {
+    return null;
+  }
 }

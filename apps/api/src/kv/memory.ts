@@ -1,35 +1,50 @@
-import { createKvReader, createKvWriter } from './client';
-import { type AgentMemory, encodeKvKey, decodeKvValue } from './types';
-import { OG_KV_STREAM_ID } from '../config/env';
+import { createKvWriter, downloadFromStorage } from './client';
+import { type AgentMemory, encodeKvKey } from './types';
+import { db, users, eq } from '@genie/db';
 
 /**
- * Read agent memory from 0G KV. Returns null if KV is unavailable or key not found.
- * NEVER throws — chat must work without KV (per anti-pattern rules in RESEARCH).
+ * Read agent memory from 0G mainnet storage.
+ * Looks up the root hash from Supabase, downloads the blob from 0G, parses the JSON.
+ * Returns null if unavailable. NEVER throws.
  */
 export async function readMemory(userId: string): Promise<AgentMemory | null> {
   try {
-    const kvClient = createKvReader();
-    if (!kvClient) return null;
+    const [user] = await db
+      .select({ memoryRootHash: users.memoryRootHash })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-    const streamId = OG_KV_STREAM_ID;
-    if (!streamId) return null;
-
-    const key = `user:${userId}:memory`;
-    // encodeKvKey returns Uint8Array — KvClient.getValue accepts Bytes (Uint8Array is Bytes-compatible)
-    const encodedKey = encodeKvKey(key);
-    const result = await kvClient.getValue(
-      streamId,
-      encodedKey as unknown as Parameters<typeof kvClient.getValue>[1],
-    );
-
-    if (!result) {
-      console.log(`[kv] no memory found for user ${userId}`);
+    if (!user?.memoryRootHash) {
+      console.log(`[kv] no memory root hash for user ${userId}`);
       return null;
     }
 
-    // result.data is a Base64 string — pass to decodeKvValue which decodes base64 -> AgentMemory
-    const memory = decodeKvValue(result.data);
-    console.log(`[kv] loaded memory for user ${userId}`);
+    const blob = await downloadFromStorage(user.memoryRootHash);
+    if (!blob) {
+      console.log(`[kv] download failed for root ${user.memoryRootHash}`);
+      return null;
+    }
+
+    // Blob is KV stream-encoded binary: headers + streamId + key + value.
+    // Extract our JSON value by finding the AgentMemory object.
+    const text = blob.toString('utf-8');
+    const jsonStart = text.indexOf('{"financialProfile"');
+    if (jsonStart < 0) {
+      console.log(`[kv] could not find memory JSON in blob for user ${userId}`);
+      return null;
+    }
+
+    let depth = 0;
+    let jsonEnd = jsonStart;
+    for (let i = jsonStart; i < text.length; i++) {
+      if (text[i] === '{') depth++;
+      else if (text[i] === '}') depth--;
+      if (depth === 0) { jsonEnd = i + 1; break; }
+    }
+
+    const memory = JSON.parse(text.substring(jsonStart, jsonEnd)) as AgentMemory;
+    console.log(`[kv] loaded memory for user ${userId} from 0G mainnet`);
     return memory;
   } catch (err) {
     console.error(`[kv] readMemory failed for user ${userId}:`, err);
@@ -38,9 +53,9 @@ export async function readMemory(userId: string): Promise<AgentMemory | null> {
 }
 
 /**
- * Write agent memory to 0G KV. Silently fails if KV is unavailable.
+ * Write agent memory to 0G mainnet KV storage.
+ * Stores the root hash in Supabase for later read-back.
  * NEVER throws — memory write failure must not break the conversation.
- * Called after key moments: new goal, preference stated, profile change (D-07).
  */
 export async function writeMemory(userId: string, memory: AgentMemory): Promise<boolean> {
   try {
@@ -58,7 +73,13 @@ export async function writeMemory(userId: string, memory: AgentMemory): Promise<
       return false;
     }
 
-    console.log(`[kv] wrote memory for user ${userId}, tx:`, tx);
+    // Persist root hash so readMemory can download it later
+    await db
+      .update(users)
+      .set({ memoryRootHash: tx.rootHash })
+      .where(eq(users.id, userId));
+
+    console.log(`[kv] wrote memory for user ${userId}, root: ${tx.rootHash}`);
     return true;
   } catch (err) {
     console.error(`[kv] writeMemory failed for user ${userId}:`, err);

@@ -6,6 +6,7 @@ export const users = pgTable('users', {
   worldId: text('world_id'),
   displayName: text('display_name').notNull(),
   autoApproveUsd: numeric('auto_approve_usd', { precision: 10, scale: 2 }).notNull().default('25'),
+  memoryRootHash: text('memory_root_hash'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 

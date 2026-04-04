@@ -7,15 +7,13 @@ import {
   type AgentMemory,
 } from './types';
 
-// Top-level mock — hoisted before all tests, stable across the file
-const mockGetValue = vi.fn();
 const mockExec = vi.fn();
 const mockSetKey = vi.fn();
+const mockDownload = vi.fn();
+const mockDbSelect = vi.fn();
+const mockDbUpdate = vi.fn();
 
 vi.mock('./client', () => ({
-  createKvReader: vi.fn(() => ({
-    getValue: mockGetValue,
-  })),
   createKvWriter: vi.fn(async () => ({
     streamId: '0xtest-stream-id',
     batcher: {
@@ -23,11 +21,30 @@ vi.mock('./client', () => ({
       exec: mockExec,
     },
   })),
+  downloadFromStorage: vi.fn((...args: unknown[]) => mockDownload(...args)),
 }));
 
-// Import after mocks are in place
+vi.mock('@genie/db', () => ({
+  db: {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(() => mockDbSelect()),
+        })),
+      })),
+    })),
+    update: vi.fn(() => ({
+      set: vi.fn(() => ({
+        where: vi.fn(() => mockDbUpdate()),
+      })),
+    })),
+  },
+  users: { id: 'id', memoryRootHash: 'memory_root_hash' },
+  eq: vi.fn(),
+}));
+
 import { readMemory, writeMemory } from './memory';
-import { createKvReader, createKvWriter } from './client';
+import { createKvWriter } from './client';
 
 describe('DEFAULT_MEMORY', () => {
   it('has empty financialProfile object', () => {
@@ -59,36 +76,30 @@ describe('encodeKvKey', () => {
 });
 
 describe('readMemory graceful fallback', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  beforeEach(() => vi.clearAllMocks());
 
-  it('returns null when createKvReader returns null (KV client unavailable)', async () => {
-    vi.mocked(createKvReader).mockReturnValueOnce(null);
+  it('returns null when no root hash stored in DB', async () => {
+    mockDbSelect.mockResolvedValueOnce([{ memoryRootHash: null }]);
     const result = await readMemory('user-abc');
     expect(result).toBeNull();
   });
 
-  it('returns null when KvClient.getValue throws (network error)', async () => {
-    // createKvReader returns a client whose getValue throws
-    vi.mocked(createKvReader).mockReturnValueOnce({
-      getValue: vi.fn(async () => { throw new Error('network error'); }),
-    } as any);
+  it('returns null when download from 0G fails', async () => {
+    mockDbSelect.mockResolvedValueOnce([{ memoryRootHash: '0xabc123' }]);
+    mockDownload.mockResolvedValueOnce(null);
     const result = await readMemory('user-xyz');
     expect(result).toBeNull();
   });
 
-  it('returns null when KvClient.getValue returns null (key not found)', async () => {
-    mockGetValue.mockResolvedValueOnce(null);
-    const result = await readMemory('user-no-key');
+  it('returns null when user not found in DB', async () => {
+    mockDbSelect.mockResolvedValueOnce([]);
+    const result = await readMemory('user-no-exist');
     expect(result).toBeNull();
   });
 });
 
 describe('writeMemory graceful fallback', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  beforeEach(() => vi.clearAllMocks());
 
   it('returns false when createKvWriter returns null (OG_PRIVATE_KEY missing)', async () => {
     vi.mocked(createKvWriter).mockResolvedValueOnce(null);
@@ -102,8 +113,9 @@ describe('writeMemory graceful fallback', () => {
     expect(result).toBe(false);
   });
 
-  it('returns true when batcher.exec succeeds', async () => {
-    mockExec.mockResolvedValueOnce(['0xtxhash', null]);
+  it('returns true and stores root hash on success', async () => {
+    mockExec.mockResolvedValueOnce([{ txHash: '0xtx', rootHash: '0xroot' }, null]);
+    mockDbUpdate.mockResolvedValueOnce(undefined);
     const result = await writeMemory('user-abc', { ...DEFAULT_MEMORY });
     expect(result).toBe(true);
   });

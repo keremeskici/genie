@@ -22,8 +22,7 @@ export const OG_API_KEY = requireEnv('OG_API_KEY');
 export const OG_PLANNING_MODEL = requireEnv('OG_PLANNING_MODEL');
 export const OG_ACTION_MODEL = requireEnv('OG_ACTION_MODEL');
 
-// --- 0G KV Storage ---
-export const OG_KV_CLIENT_URL = optionalEnv('OG_KV_CLIENT_URL');
+// --- 0G KV Storage (mainnet) ---
 export const OG_PRIVATE_KEY = optionalEnv('OG_PRIVATE_KEY');
 export const OG_KV_STREAM_ID = optionalEnv('OG_KV_STREAM_ID');
 
