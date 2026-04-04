@@ -37,17 +37,22 @@ export async function POST(req: NextRequest) {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
     if (apiUrl) {
       try {
-        const nullifier_hash = (payload as Record<string, unknown>).nullifier_hash as string;
         // Get userId from server-side session via NextAuth v5 auth()
+        // session.user.id is the wallet address — the backend resolveUserId() handles provisioning
         const session = await auth();
         const userId = session?.user?.id;
 
+        // Send the full proof payload so the backend can validate against World ID Cloud API
+        // Backend proofSchema requires: userId, proof, merkle_root, nullifier_hash, verification_level
         await fetch(`${apiUrl}/api/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            nullifier_hash: nullifier_hash,
-            userId: userId,
+            userId,
+            proof: (payload as Record<string, unknown>).proof,
+            merkle_root: (payload as Record<string, unknown>).merkle_root,
+            nullifier_hash: (payload as Record<string, unknown>).nullifier_hash,
+            verification_level: (payload as Record<string, unknown>).verification_level ?? 'orb',
           }),
         });
         console.log('[verify-proof] persisted to Genie backend');
