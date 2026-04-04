@@ -10,9 +10,9 @@ const app = new Hono();
 app.use('*', cors());
 app.use('*', logger());
 app.get('/health', (c) => c.json({ status: 'ok', service: 'genie-api' }));
-app.route('/', chatRoute);
-app.route('/', verifyRoute);
-app.route('/', confirmRoute);
+app.route('/api', chatRoute);
+app.route('/api', verifyRoute);
+app.route('/api', confirmRoute);
 
 const port = parseInt(process.env.PORT ?? '3001', 10);
 
