@@ -49,7 +49,7 @@ Plans:
 - [x] 02-01-PLAN.md — Drizzle schema (users, contacts, transactions, debts), DB client, drizzle-kit push config
 - [x] 02-02-PLAN.md — 0G KV service layer (AgentMemory type, read/write helpers, graceful fallback)
 - [x] 02-03-PLAN.md — Context wiring (extend assembleContext with KV memory, cache in chat route)
-- [ ] 02-04-PLAN.md — Gap closure: wire writeMemory via update_memory tool, cache invalidation
+- [x] 02-04-PLAN.md — Gap closure: wire writeMemory via update_memory tool, cache invalidation
 
 ### Phase 3: Identity
 **Goal**: World ID proof-of-human is verified server-side and controls what actions users can take
