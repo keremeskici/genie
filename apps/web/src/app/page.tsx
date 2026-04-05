@@ -13,7 +13,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('Initializing...');
-  const [debugInfo, setDebugInfo] = useState<Record<string, any>>({});
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
     setMounted(true);
