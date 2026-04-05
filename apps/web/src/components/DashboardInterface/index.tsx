@@ -153,7 +153,13 @@ export const DashboardInterface = () => {
 
     </div>
     </div>
-      {showSend && <SendModal onClose={() => { setShowSend(false); refetchBalance(); }} />}
+      {showSend && (
+        <SendModal
+          onClose={() => { setShowSend(false); refetchBalance(); }}
+          userId={session?.user?.id ?? ''}
+          refetchBalance={refetchBalance}
+        />
+      )}
       {showReceive && walletAddress && (
         <ReceiveModal address={walletAddress} onClose={() => setShowReceive(false)} />
       )}
