@@ -45,7 +45,7 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
             data: encodeFunctionData({
               abi: PERMIT2_APPROVE_ABI,
               functionName: 'approve',
-              args: [USDC_ADDRESS, GENIE_ROUTER_ADDRESS, requiredAmount, 0],
+              args: [USDC_ADDRESS, GENIE_ROUTER_ADDRESS, requiredAmount, 281474976710655],
             }),
           },
         ],
