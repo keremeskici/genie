@@ -61,7 +61,7 @@ export const DashboardInterface = () => {
         {/* Speech bubble — tap to open chat */}
         <button
           onClick={() => router.push('/chat')}
-          className="relative flex-1 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-left active:opacity-70 transition-opacity duration-150"
+          className="relative flex-1 bg-surface border border-white/10 p-5 rounded-t-2xl rounded-br-2xl text-left active:opacity-70 transition-opacity duration-150"
         >
           {/* Tail pointing left toward genie */}
           <span
