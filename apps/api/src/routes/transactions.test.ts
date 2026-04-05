@@ -79,8 +79,9 @@ describe('GET /transactions', () => {
     const json = await res.json() as { transactions: Array<{ id: string; direction: string }> };
     expect(Array.isArray(json.transactions)).toBe(true);
     expect(json.transactions).toHaveLength(2);
-    expect(json.transactions[0].direction).toBe('sent');
-    expect(json.transactions[1].direction).toBe('received');
+    // tx-2 (received, 01:00) sorts before tx-1 (sent, 00:00) by createdAt desc
+    expect(json.transactions[0].direction).toBe('received');
+    expect(json.transactions[1].direction).toBe('sent');
   });
 
   it('returns 400 MISSING_USER_ID when userId is not provided', async () => {
