@@ -61,9 +61,8 @@ export const DashboardInterface = () => {
         {/* Speech bubble — tap to open chat */}
         <button
           onClick={() => router.push('/chat')}
-          className="relative flex-1 bg-surface border border-white/10 p-5 rounded-t-2xl rounded-br-2xl text-left active:opacity-70 transition-opacity duration-150"
+          className="relative flex-1 min-w-0 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white break-words text-left active:opacity-70 transition-opacity duration-150"
         >
-          {/* Tail pointing left toward genie */}
           <span
             className="absolute bottom-5 -left-[9px] w-0 h-0"
             style={{
@@ -72,9 +71,9 @@ export const DashboardInterface = () => {
               borderRight: '10px solid #171717',
             }}
           />
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <span
-              className="material-symbols-outlined text-accent text-base"
+              className="material-symbols-outlined text-accent text-lg"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               auto_awesome
@@ -83,7 +82,7 @@ export const DashboardInterface = () => {
               Genie
             </span>
           </div>
-          <p className="text-sm text-white/80 leading-relaxed">{GENIE_SUMMARY}</p>
+          <p className="text-sm leading-relaxed">{GENIE_SUMMARY}</p>
         </button>
       </div>
 
