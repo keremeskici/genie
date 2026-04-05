@@ -3,12 +3,16 @@ import { IDKit, orbLegacy, type RpContext } from '@worldcoin/idkit';
 import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
 import { useState } from 'react';
 
-/**
- * World ID Verification Component (RP Signature Method)
- * This uses the custom RP signature flow for verification.
- */
 interface VerifyProps {
   onVerified?: () => void;
+}
+
+function dlog(step: string, data?: unknown) {
+  fetch('/api/debug-log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ step, data, ts: Date.now() }),
+  }).catch(() => {});
 }
 
 export const Verify = ({ onVerified }: VerifyProps = {}) => {
@@ -21,7 +25,8 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
   const onClickVerify = async () => {
     setButtonState('pending');
     try {
-      // Step 1: Fetch RP signature from your backend
+      // Step 1: Fetch RP signature
+      dlog('1-start', { action: WORLD_ACTION });
       const rpRes = await fetch('/api/rp-signature', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -29,10 +34,20 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
       });
 
       if (!rpRes.ok) {
-        throw new Error('Failed to get RP signature');
+        const errText = await rpRes.text();
+        dlog('1-fail', { status: rpRes.status, body: errText });
+        throw new Error(`RP signature failed: ${rpRes.status}`);
       }
 
       const rpSig = await rpRes.json();
+      dlog('1-done', {
+        rp_id: rpSig.rp_id,
+        nonce: rpSig.nonce?.slice(0, 10),
+        created_at: rpSig.created_at,
+        expires_at: rpSig.expires_at,
+        sig_len: rpSig.sig?.length,
+      });
+
       const rpContext: RpContext = {
         rp_id: rpSig.rp_id,
         nonce: rpSig.nonce,
@@ -41,7 +56,12 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
         signature: rpSig.sig,
       };
 
-      // Step 2: Use IDKit request API with RP context
+      // Step 2: IDKit request
+      dlog('2-start', {
+        app_id: process.env.NEXT_PUBLIC_APP_ID,
+        action: WORLD_ACTION,
+      });
+
       const request = await IDKit.request({
         app_id: process.env.NEXT_PUBLIC_APP_ID as `app_${string}`,
         action: WORLD_ACTION,
@@ -49,15 +69,27 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
         allow_legacy_proofs: true,
       }).preset(orbLegacy({ signal: '' }));
 
+      dlog('2-polling');
       const completion = await request.pollUntilCompletion();
 
       if (!completion.success) {
+        dlog('2-fail', {
+          success: false,
+          error: (completion as Record<string, unknown>).error,
+          full: JSON.stringify(completion).slice(0, 500),
+        });
         setButtonState('failed');
         setTimeout(() => setButtonState(undefined), 2000);
         return;
       }
 
-      // Step 3: Verify the proof on the server (forward as-is per v4 spec)
+      dlog('2-done', {
+        protocol_version: (completion.result as Record<string, unknown>)?.protocol_version,
+        has_responses: !!(completion.result as Record<string, unknown>)?.responses,
+      });
+
+      // Step 3: Verify proof on server
+      dlog('3-start');
       const response = await fetch('/api/verify-proof', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,14 +100,18 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
       });
 
       if (response.ok) {
+        dlog('3-done', { success: true });
         setButtonState('success');
         onVerified?.();
       } else {
+        const errBody = await response.text();
+        dlog('3-fail', { status: response.status, body: errBody.slice(0, 500) });
         setButtonState('failed');
         setTimeout(() => setButtonState(undefined), 2000);
       }
     } catch (err) {
-      console.error('[Verify] RP flow failed:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      dlog('catch', { error: msg, stack: err instanceof Error ? err.stack?.slice(0, 500) : undefined });
       setButtonState('failed');
       setTimeout(() => setButtonState(undefined), 2000);
     }

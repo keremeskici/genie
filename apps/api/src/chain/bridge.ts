@@ -2,9 +2,10 @@ import { erc20Abi, parseUnits, pad } from 'viem';
 import { getWalletClient, relayerAccount, chain, GENIE_ROUTER_ADDRESS, USDC_ADDRESS } from './clients';
 import { GenieRouterAbi } from '../contracts/abis';
 
-const TOKEN_MESSENGER_WORLD_CHAIN = '0x1682bd6a475003921322496e952627702f7823f9';
+// ─── CCTP V2 — hardcoded mainnet addresses ──────────────────────
+const TOKEN_MESSENGER_V2 = '0x81D40F21F12A8F0E3252Bccb954D722d4c464B64' as `0x${string}`;
 
-const TokenMessengerAbi = [
+const TokenMessengerV2Abi = [
   {
     type: 'function',
     name: 'depositForBurn',
@@ -20,8 +21,8 @@ const TokenMessengerAbi = [
 ] as const;
 
 /**
- * CCTP domain IDs for supported destination chains.
- * Only chains supported by Circle CCTP on World Chain testnet.
+ * CCTP V2 domain IDs for supported destination chains (from Circle docs).
+ * Source domain: World Chain = 14
  */
 export const CCTP_DOMAIN_IDS: Record<string, number> = {
   ethereum: 0,
@@ -31,14 +32,12 @@ export const CCTP_DOMAIN_IDS: Record<string, number> = {
 };
 
 /**
- * bridgeUsdc — Shared CCTP bridge utility (extracted from settle_crosschain_debt).
+ * bridgeUsdc — CCTP V2 bridge utility.
  *
  * Executes 3 on-chain steps:
- * 1. GenieRouter.route(sender, amount, relayer) — pull USDC from user to relayer
- * 2. USDC.approve(TokenMessenger, amount) — approve TokenMessenger to spend relayer's USDC
- * 3. TokenMessenger.depositForBurn(...) — initiate CCTP bridge to destination chain
- *
- * Per viem 2.45 requirement: explicit `account` and `chain` passed to every writeContract call.
+ * 1. GenieRouter.route(sender, amount, relayer) — pull USDC from user to relayer via Permit2
+ * 2. USDC.approve(TokenMessengerV2, amount) — approve TokenMessenger to spend relayer's USDC
+ * 3. TokenMessengerV2.depositForBurn(...) — initiate CCTP bridge to destination chain
  */
 export async function bridgeUsdc(params: {
   senderWallet: `0x${string}`;
@@ -54,9 +53,9 @@ export async function bridgeUsdc(params: {
 
   const walletClient = getWalletClient();
   const relayer = relayerAccount();
-  const amountUnits = parseUnits(amountUsd.toString(), 6); // USDC 6 decimals
+  const amountUnits = parseUnits(amountUsd.toString(), 6);
 
-  // Step 1: Pull funds from User to Relayer via GenieRouter
+  // Step 1: Pull funds from User to Relayer via GenieRouter (Permit2 under the hood)
   const routeTxHash = await walletClient.writeContract({
     account: relayer,
     chain,
@@ -66,34 +65,34 @@ export async function bridgeUsdc(params: {
     args: [senderWallet, amountUnits, relayer.address],
   });
 
-  console.log(`[bridge:bridgeUsdc] Pull TX: ${routeTxHash}`);
+  console.log(`[bridge] Pull TX: ${routeTxHash}`);
 
-  // Step 2: Approve TokenMessenger to spend relayer's USDC
+  // Step 2: Approve TokenMessenger V2 to spend relayer's USDC (direct ERC20 approve — relayer is EOA)
   const approveTxHash = await walletClient.writeContract({
     account: relayer,
     chain,
     address: USDC_ADDRESS,
     abi: erc20Abi,
     functionName: 'approve',
-    args: [TOKEN_MESSENGER_WORLD_CHAIN as `0x${string}`, amountUnits],
+    args: [TOKEN_MESSENGER_V2, amountUnits],
   });
 
-  console.log(`[bridge:bridgeUsdc] Approve Messenger TX: ${approveTxHash}`);
+  console.log(`[bridge] Approve Messenger TX: ${approveTxHash}`);
 
-  // Step 3: Trigger CCTP Bridge (depositForBurn)
+  // Step 3: Trigger CCTP V2 Bridge (depositForBurn)
   const destinationDomain = CCTP_DOMAIN_IDS[destinationChain];
   const mintRecipient = pad(recipientWallet as `0x${string}`, { size: 32 });
 
   const bridgeTxHash = await walletClient.writeContract({
     account: relayer,
     chain,
-    address: TOKEN_MESSENGER_WORLD_CHAIN as `0x${string}`,
-    abi: TokenMessengerAbi,
+    address: TOKEN_MESSENGER_V2,
+    abi: TokenMessengerV2Abi,
     functionName: 'depositForBurn',
     args: [amountUnits, destinationDomain, mintRecipient, USDC_ADDRESS],
   });
 
-  console.log(`[bridge:bridgeUsdc] Bridge TX: ${bridgeTxHash}`);
+  console.log(`[bridge] Bridge TX: ${bridgeTxHash}`);
 
   return { routeTxHash, approveTxHash, bridgeTxHash };
 }

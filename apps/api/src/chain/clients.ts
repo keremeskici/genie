@@ -1,19 +1,18 @@
 import { createPublicClient, createWalletClient, http } from 'viem';
-import { worldchain, worldchainSepolia } from 'viem/chains';
+import { worldchain } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import {
   WORLD_CHAIN_RPC_URL,
-  WORLD_CHAIN_TESTNET,
   RELAYER_PRIVATE_KEY,
-  GENIE_ROUTER_ADDRESS,
-  PAY_HANDLER_ADDRESS,
-  USDC_ADDRESS_TESTNET,
-  USDC_ADDRESS_MAINNET,
 } from '../config/env';
 
-export { GENIE_ROUTER_ADDRESS, PAY_HANDLER_ADDRESS };
+// ─── Hardcoded mainnet addresses (World Chain 480) ───────────────
+export const GENIE_ROUTER_ADDRESS = '0x1652E56F762E8DDeE4710111aA3b72a22a90998A' as `0x${string}`;
+export const PAY_HANDLER_ADDRESS = '0x3fc0Ba0e5221f6CCe6222D4a321eecddfAc38DaE' as `0x${string}`;
+export const USDC_ADDRESS = '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' as `0x${string}`;
+export const PERMIT2_ADDRESS = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as `0x${string}`;
 
-export const chain = WORLD_CHAIN_TESTNET ? worldchainSepolia : worldchain;
+export const chain = worldchain;
 
 export const publicClient = createPublicClient({
   chain,
@@ -47,8 +46,3 @@ export function getWalletClient() {
 export function relayerAccount() {
   return getRelayerAccountInstance();
 }
-
-// USDC contract addresses (verified from WorldScan and docs.world.org)
-export const USDC_ADDRESS: `0x${string}` = (
-  WORLD_CHAIN_TESTNET ? USDC_ADDRESS_TESTNET : USDC_ADDRESS_MAINNET
-) as `0x${string}`;
