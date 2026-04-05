@@ -4,10 +4,8 @@ import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
 import { useState } from 'react';
 
 /**
- * This component is an example of how to use World ID verification via IDKit.
- * Verification now goes through IDKit end-to-end (both native World App and web).
- * It's critical you verify the proof on the server side.
- * Read More: https://docs.world.org/mini-apps/commands/verify#verifying-the-proof
+ * World ID Verification Component (RP Signature Method)
+ * This uses the custom RP signature flow for verification.
  */
 interface VerifyProps {
   onVerified?: () => void;
@@ -23,7 +21,7 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
   const onClickVerify = async () => {
     setButtonState('pending');
     try {
-      // Fetch RP signature from your backend
+      // Step 1: Fetch RP signature from your backend
       const rpRes = await fetch('/api/rp-signature', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,7 +41,7 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
         signature: rpSig.sig,
       };
 
-      // Use IDKit request API
+      // Step 2: Use IDKit request API with RP context
       const request = await IDKit.request({
         app_id: process.env.NEXT_PUBLIC_APP_ID as `app_${string}`,
         action: WORLD_ACTION,
@@ -59,9 +57,10 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
         return;
       }
 
-      // Verify the proof on the server
+      // Step 3: Verify the proof on the server
       const response = await fetch('/api/verify-proof', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           payload: completion.result,
           action: WORLD_ACTION,
@@ -69,14 +68,15 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
       });
 
       const data = await response.json();
-      if (data.verifyRes.success) {
+      if (response.ok && data.verifyRes?.success) {
         setButtonState('success');
         onVerified?.();
       } else {
         setButtonState('failed');
         setTimeout(() => setButtonState(undefined), 2000);
       }
-    } catch {
+    } catch (err) {
+      console.error('[Verify] RP flow failed:', err);
       setButtonState('failed');
       setTimeout(() => setButtonState(undefined), 2000);
     }
@@ -84,7 +84,6 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
 
   return (
     <div className="grid w-full gap-4">
-      <p className="text-lg font-semibold text-white">Verify</p>
       <LiveFeedback
         label={{
           failed: 'Failed to verify',

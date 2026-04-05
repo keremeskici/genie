@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
-import { createPublicClient, encodeFunctionData, http } from 'viem';
+import { createPublicClient, erc20Abi, encodeFunctionData, http } from 'viem';
 import { worldchain } from 'viem/chains';
 import { ERC20_APPROVE_ABI, USDC_ADDRESS, GENIE_ROUTER_ADDRESS } from '@/lib/contracts';
 
@@ -13,10 +13,11 @@ interface ApprovalOverlayProps {
   onClose: () => void;
 }
 
-type ApprovalState = 'pending' | 'success' | 'error';
+type ApprovalState = 'pending' | 'verifying' | 'success' | 'error';
 
 export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverlayProps) {
   const [state, setState] = useState<ApprovalState>('pending');
+  const [errorMsg, setErrorMsg] = useState('');
   const hasRun = useRef(false);
 
   const client = useMemo(
@@ -30,10 +31,30 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
 
   const { poll } = useUserOperationReceipt({ client });
 
+  const requiredAmount = BigInt(budgetUsd) * BigInt(1_000_000);
+
+  /** Read on-chain allowance to confirm the approval actually landed */
+  const verifyAllowance = useCallback(
+    async (owner: string): Promise<boolean> => {
+      try {
+        const allowance = await client.readContract({
+          address: USDC_ADDRESS as `0x${string}`,
+          abi: erc20Abi,
+          functionName: 'allowance',
+          args: [owner as `0x${string}`, GENIE_ROUTER_ADDRESS as `0x${string}`],
+        });
+        return (allowance as bigint) >= requiredAmount;
+      } catch {
+        return false;
+      }
+    },
+    [client, requiredAmount],
+  );
+
   const runApproval = useCallback(async () => {
     setState('pending');
+    setErrorMsg('');
     try {
-      const amount = BigInt(budgetUsd) * BigInt(1_000_000);
       const result = await MiniKit.sendTransaction({
         chainId: 480,
         transactions: [
@@ -42,17 +63,32 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
             data: encodeFunctionData({
               abi: ERC20_APPROVE_ABI,
               functionName: 'approve',
-              args: [GENIE_ROUTER_ADDRESS, amount],
+              args: [GENIE_ROUTER_ADDRESS, requiredAmount],
             }),
           },
         ],
       });
 
       if (!result?.data?.userOpHash) {
-        throw new Error('MiniKit did not return a userOpHash — approval may not have been submitted');
+        throw new Error('Approval was not submitted. Please try again.');
       }
 
-      await poll(result.data.userOpHash);
+      // Wait for the user operation to be mined
+      setState('verifying');
+      const { receipt } = await poll(result.data.userOpHash);
+
+      if (!receipt || receipt.status === 'reverted') {
+        throw new Error('Approval transaction reverted on-chain.');
+      }
+
+      // Verify the allowance actually exists on-chain
+      const from = result.data.from;
+      if (from) {
+        const ok = await verifyAllowance(from);
+        if (!ok) {
+          throw new Error('Allowance not detected on-chain after approval. The transaction may have targeted the wrong token.');
+        }
+      }
 
       setState('success');
       setTimeout(() => {
@@ -60,9 +96,10 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
       }, 1500);
     } catch (err) {
       console.error('[ApprovalOverlay] transaction failed:', err);
+      setErrorMsg(err instanceof Error ? err.message : 'Transaction failed or was rejected');
       setState('error');
     }
-  }, [budgetUsd, poll, onSuccess]);
+  }, [budgetUsd, poll, onSuccess, requiredAmount, verifyAllowance]);
 
   useEffect(() => {
     if (hasRun.current) return;
@@ -72,11 +109,13 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
 
   return (
     <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center">
-      {state === 'pending' && (
+      {(state === 'pending' || state === 'verifying') && (
         <>
           <div className="w-16 h-16 rounded-full border-4 border-white/10 border-t-[#ccff00] animate-spin mb-8" />
           <p className="font-headline text-white/80 text-center text-sm px-8">
-            Authorizing Genie to spend up to ${budgetUsd} USDC on your behalf
+            {state === 'pending'
+              ? `Authorizing Genie to spend up to $${budgetUsd} USDC on your behalf`
+              : 'Verifying approval on-chain\u2026'}
           </p>
         </>
       )}
@@ -126,21 +165,18 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
               />
             </svg>
           </div>
-          <p className="font-headline text-white/80 text-center text-sm px-8 mb-8">
-            Transaction failed or was rejected
+          <p className="font-headline text-white/80 text-center text-sm px-8 mb-2">
+            Approval required to continue
           </p>
-          <div className="flex flex-col gap-3 w-full px-12">
+          <p className="text-white/40 text-xs text-center px-12 mb-8">
+            {errorMsg}
+          </p>
+          <div className="w-full px-12">
             <button
-              onClick={runApproval}
-              className="bg-[#ccff00] text-black font-headline font-bold rounded-2xl py-4 active:scale-95 transition-transform"
+              onClick={() => { hasRun.current = false; runApproval(); }}
+              className="w-full bg-[#ccff00] text-black font-headline font-bold rounded-2xl py-4 active:scale-95 transition-transform"
             >
               Try Again
-            </button>
-            <button
-              onClick={onClose}
-              className="bg-white/10 text-white/60 font-headline font-bold rounded-2xl py-4 active:scale-95 transition-transform"
-            >
-              Cancel
             </button>
           </div>
         </>
