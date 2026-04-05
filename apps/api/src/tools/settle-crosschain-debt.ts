@@ -1,6 +1,5 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { requireVerified } from './require-verified';
 import { db, debts, transactions, eq, and } from '@genie/db';
 import { bridgeUsdc } from '../chain/bridge';
 import type { UserContext } from '../agent/context';
@@ -27,10 +26,6 @@ export function createSettleCrosschainDebtTool(userId: string, userContext: User
       destinationWallet: z.string().describe('The recipient wallet address on the destination chain'),
     }),
     execute: async ({ debtId, destinationChain, destinationWallet }) => {
-      // Gate: require World ID verification
-      const gateError = requireVerified(userContext);
-      if (gateError) return gateError;
-
       try {
         // 1. Fetch the debt record
         const [debt] = await db

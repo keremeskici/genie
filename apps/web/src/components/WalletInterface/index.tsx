@@ -2,15 +2,12 @@
 import { useSession } from 'next-auth/react';
 import { useBalance } from '@/hooks/useBalance';
 import { useTransactions } from '@/hooks/useTransactions';
-import { Verify } from '@/components/Verify';
 import { formatRelativeTime, formatWallet } from '@/lib/format';
-import { useState } from 'react';
 
 export const WalletInterface = () => {
   const { data: session } = useSession();
   const walletAddress = session?.user?.walletAddress ?? '';
   const userId = session?.user?.id ?? '';
-  const [isVerified, setIsVerified] = useState(false);
   const { balance, loading: balanceLoading, error: balanceError } = useBalance(walletAddress);
   const { transactions, loading: txLoading } = useTransactions(userId);
 
@@ -71,21 +68,6 @@ export const WalletInterface = () => {
           USDC
         </p>
       </div>
-
-      {/* Verify with World ID — only shown for unverified users */}
-      {!isVerified && (
-        <div className="px-0 mb-6">
-          <div className="bg-surface rounded-2xl p-5">
-            <p className="font-headline text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">
-              Unlock More Features
-            </p>
-            <p className="text-sm text-white/60 mb-4">
-              Verify with World ID to unlock sending and debt tracking.
-            </p>
-            <Verify onVerified={() => setIsVerified(true)} />
-          </div>
-        </div>
-      )}
 
       {/* Recent Transactions */}
       <div className="mb-10">

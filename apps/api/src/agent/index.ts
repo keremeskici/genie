@@ -90,7 +90,7 @@ export async function runAgent(request: ChatRequest) {
     ? createCreateDebtTool(request.userId, resolvedUserContext)
     : undefined;
   const listDebtsTool = request.userId
-    ? createListDebtsTool(request.userId, resolvedUserContext)
+    ? createListDebtsTool(request.userId)
     : undefined;
   const getSpendingTool = request.userId
     ? createGetSpendingTool(request.userId)

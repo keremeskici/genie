@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Verify } from '../Verify';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -59,14 +58,6 @@ export const ProfileInterface = () => {
           Profile
         </h1>
       </div>
-
-      {/* ── Identity / World ID ── */}
-      <Section label="Identity">
-        <p className="text-xs text-white/40 mb-4 leading-relaxed">
-          Verify your humanity with World ID to unlock send money, debt tracking, and agent automation.
-        </p>
-        <Verify />
-      </Section>
 
       {/* ── Agent Spending Limit ── */}
       <Section label="Agent Spending Limit">

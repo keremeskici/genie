@@ -27,19 +27,12 @@ vi.mock('./categorize', () => ({
   }),
 }));
 
-// Mock require-verified
-vi.mock('./require-verified', () => ({
-  requireVerified: vi.fn(),
-}));
-
 import { createSendUsdcTool } from './send-usdc';
 import { executeOnChainTransfer } from '../chain/transfer';
 import { db } from '@genie/db';
-import { requireVerified } from './require-verified';
 import { inferCategory } from './categorize';
 
 const mockExecuteOnChainTransfer = executeOnChainTransfer as ReturnType<typeof vi.fn>;
-const mockRequireVerified = requireVerified as ReturnType<typeof vi.fn>;
 
 const BASE_USER_ID = 'user-abc-123';
 const BASE_USER_CONTEXT = {
@@ -54,8 +47,6 @@ const RECIPIENT = '0xRecipient0000000000000000000000000000001';
 describe('createSendUsdcTool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: pass verification
-    mockRequireVerified.mockReturnValue(null);
     // Default DB insert chain
     mockInsert.mockReturnValue({
       values: vi.fn().mockReturnValue({
@@ -79,20 +70,6 @@ describe('createSendUsdcTool', () => {
       routeTxHash: '0xroute111',
       executeTxHash: '0xexec222',
     });
-  });
-
-  it('returns VERIFICATION_REQUIRED error when userContext.isVerified is false', async () => {
-    mockRequireVerified.mockReturnValue({
-      error: 'VERIFICATION_REQUIRED',
-      message: 'This action requires World ID verification. Please verify to continue.',
-    });
-    const tool = createSendUsdcTool(BASE_USER_ID, { ...BASE_USER_CONTEXT, isVerified: false });
-    const result = await tool.execute(
-      { recipientAddress: RECIPIENT, amountUsd: 10 },
-      { messages: [], toolCallId: 'test' },
-    );
-    expect(result).toMatchObject({ error: 'VERIFICATION_REQUIRED' });
-    expect(mockExecuteOnChainTransfer).not.toHaveBeenCalled();
   });
 
   it('calls executeOnChainTransfer and records confirmed transaction when amountUsd <= autoApproveUsd', async () => {

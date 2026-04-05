@@ -121,35 +121,11 @@ describe('assembleContext — with DEFAULT_MEMORY (empty memory)', () => {
   });
 });
 
-describe('assembleContext — verified user (D-09)', () => {
-  it('includes verified=true in context injection when isVerified is true', () => {
-    const ctx: UserContext = { ...mockUserContext, isVerified: true, isHumanBacked: true };
-    const result = assembleContext(mockSystemPrompt, ctx, [], 'hello');
+describe('assembleContext — no verification in context injection', () => {
+  it('does not include verified= or humanBacked= in context injection', () => {
+    const result = assembleContext(mockSystemPrompt, mockUserContext, [], 'hello');
     const injection = result.messages[0].content as string;
-    expect(injection).toContain('verified=true');
-  });
-
-  it('includes humanBacked=true in context injection when isHumanBacked is true', () => {
-    const ctx: UserContext = { ...mockUserContext, isVerified: true, isHumanBacked: true };
-    const result = assembleContext(mockSystemPrompt, ctx, [], 'hello');
-    const injection = result.messages[0].content as string;
-    expect(injection).toContain('humanBacked=true');
-  });
-});
-
-describe('assembleContext — unverified user (D-09)', () => {
-  it('includes verified=false with gating notice when isVerified is false', () => {
-    const ctx: UserContext = { ...mockUserContext, isVerified: false, isHumanBacked: false };
-    const result = assembleContext(mockSystemPrompt, ctx, [], 'hello');
-    const injection = result.messages[0].content as string;
-    expect(injection).toContain('verified=false');
-    expect(injection).toContain('gated actions unavailable');
-  });
-
-  it('includes humanBacked=false when isHumanBacked is false', () => {
-    const ctx: UserContext = { ...mockUserContext, isVerified: false, isHumanBacked: false };
-    const result = assembleContext(mockSystemPrompt, ctx, [], 'hello');
-    const injection = result.messages[0].content as string;
-    expect(injection).toContain('humanBacked=false');
+    expect(injection).not.toContain('verified=');
+    expect(injection).not.toContain('humanBacked=');
   });
 });

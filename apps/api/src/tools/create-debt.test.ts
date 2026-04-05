@@ -11,16 +11,8 @@ vi.mock('@genie/db', () => ({
   debts: {},
 }));
 
-// Mock require-verified
-vi.mock('./require-verified', () => ({
-  requireVerified: vi.fn(),
-}));
-
 import { createCreateDebtTool } from './create-debt';
 import { db } from '@genie/db';
-import { requireVerified } from './require-verified';
-
-const mockRequireVerified = requireVerified as ReturnType<typeof vi.fn>;
 
 const BASE_USER_ID = 'user-debt-test-123';
 const VERIFIED_CONTEXT = {
@@ -35,8 +27,6 @@ const COUNTERPARTY = '0xBob0000000000000000000000000000000000001';
 describe('createCreateDebtTool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: pass verification
-    mockRequireVerified.mockReturnValue(null);
     // Default insert chain: returns a debt record
     mockReturning.mockResolvedValue([{
       id: 'debt-id-001',
@@ -49,20 +39,6 @@ describe('createCreateDebtTool', () => {
       createdAt: new Date('2026-04-04T12:00:00Z'),
     }]);
     mockValues.mockReturnValue({ returning: mockReturning });
-  });
-
-  it('returns VERIFICATION_REQUIRED when user is unverified', async () => {
-    mockRequireVerified.mockReturnValue({
-      error: 'VERIFICATION_REQUIRED',
-      message: 'This action requires World ID verification. Please verify to continue.',
-    });
-    const tool = createCreateDebtTool(BASE_USER_ID, { ...VERIFIED_CONTEXT, isVerified: false });
-    const result = await tool.execute(
-      { counterpartyWallet: COUNTERPARTY, amountUsd: 30, iOwe: false },
-      { messages: [], toolCallId: 'test' },
-    );
-    expect(result).toMatchObject({ error: 'VERIFICATION_REQUIRED' });
-    expect(db.insert).not.toHaveBeenCalled();
   });
 
   it('creates debt with iOwe=false (they owe me) and returns debt_created', async () => {

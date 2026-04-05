@@ -1,6 +1,5 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { requireVerified } from './require-verified';
 import { executeOnChainTransfer } from '../chain/transfer';
 import { inferCategory } from './categorize';
 import { db, transactions, eq, and } from '@genie/db';
@@ -21,17 +20,13 @@ const PENDING_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes (D-13)
 export function createSendUsdcTool(userId: string, userContext: UserContext) {
   return tool({
     description:
-      'Send USDC to a resolved wallet address. Requires World ID verification. Use resolve_contact first to get the address.',
+      'Send USDC to a resolved wallet address. Use resolve_contact first to get the address.',
     inputSchema: z.object({
       recipientAddress: z.string().describe('Resolved 0x wallet address of recipient'),
       amountUsd: z.number().positive().describe('Amount in USD to send'),
       description: z.string().optional().describe('Transaction context from conversation, e.g. "dinner", "rent". Used for spending categorization.'),
     }),
     execute: async ({ recipientAddress, amountUsd, description }) => {
-      // Gate: require World ID verification (per Phase 3 guard)
-      const gateError = requireVerified(userContext);
-      if (gateError) return gateError;
-
       try {
         if (amountUsd <= userContext.autoApproveUsd) {
           // FOPS-04: Auto-execute path (D-10)

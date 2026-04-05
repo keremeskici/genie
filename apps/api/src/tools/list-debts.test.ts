@@ -13,25 +13,10 @@ vi.mock('@genie/db', () => ({
   and: vi.fn(),
 }));
 
-// Mock require-verified
-vi.mock('./require-verified', () => ({
-  requireVerified: vi.fn(),
-}));
-
 import { createListDebtsTool } from './list-debts';
 import { db } from '@genie/db';
-import { requireVerified } from './require-verified';
-
-const mockRequireVerified = requireVerified as ReturnType<typeof vi.fn>;
 
 const BASE_USER_ID = 'user-list-debts-test-123';
-const VERIFIED_CONTEXT = {
-  walletAddress: '0xOwner000000000000000000000000000000000001',
-  displayName: 'Alice',
-  autoApproveUsd: 25,
-  isVerified: true,
-  isHumanBacked: true,
-};
 
 const OPEN_DEBTS = [
   {
@@ -59,26 +44,13 @@ const OPEN_DEBTS = [
 describe('createListDebtsTool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: pass verification
-    mockRequireVerified.mockReturnValue(null);
     // Default: return open debts
     mockWhere.mockResolvedValue(OPEN_DEBTS);
     mockFrom.mockReturnValue({ where: mockWhere });
   });
 
-  it('returns VERIFICATION_REQUIRED when user is unverified', async () => {
-    mockRequireVerified.mockReturnValue({
-      error: 'VERIFICATION_REQUIRED',
-      message: 'This action requires World ID verification. Please verify to continue.',
-    });
-    const tool = createListDebtsTool(BASE_USER_ID, { ...VERIFIED_CONTEXT, isVerified: false });
-    const result = await tool.execute({}, { messages: [], toolCallId: 'test' });
-    expect(result).toMatchObject({ error: 'VERIFICATION_REQUIRED' });
-    expect(db.select).not.toHaveBeenCalled();
-  });
-
   it('returns open debts with correct shape including direction', async () => {
-    const tool = createListDebtsTool(BASE_USER_ID, VERIFIED_CONTEXT);
+    const tool = createListDebtsTool(BASE_USER_ID);
     const result = await tool.execute({}, { messages: [], toolCallId: 'test' }) as {
       type: string;
       debts: Array<{
@@ -108,7 +80,7 @@ describe('createListDebtsTool', () => {
 
   it('returns empty debts list when no open debts exist', async () => {
     mockWhere.mockResolvedValue([]);
-    const tool = createListDebtsTool(BASE_USER_ID, VERIFIED_CONTEXT);
+    const tool = createListDebtsTool(BASE_USER_ID);
     const result = await tool.execute({}, { messages: [], toolCallId: 'test' });
     expect(result).toMatchObject({
       type: 'debts_list',
@@ -119,7 +91,7 @@ describe('createListDebtsTool', () => {
 
   it('returns DEBT_LIST_FAILED on DB error', async () => {
     mockWhere.mockRejectedValue(new Error('DB timeout'));
-    const tool = createListDebtsTool(BASE_USER_ID, VERIFIED_CONTEXT);
+    const tool = createListDebtsTool(BASE_USER_ID);
     const result = await tool.execute({}, { messages: [], toolCallId: 'test' });
     expect(result).toMatchObject({
       error: 'DEBT_LIST_FAILED',
