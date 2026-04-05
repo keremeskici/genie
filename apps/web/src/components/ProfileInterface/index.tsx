@@ -59,6 +59,18 @@ export const ProfileInterface = () => {
         </h1>
       </div>
 
+      {/* ── Identity / World ID ── */}
+      <Section label="Identity">
+        <p className="text-xs text-white/40 mb-4 leading-relaxed">
+          Verify your humanity with World ID to unlock send money, debt tracking, and agent automation.
+        </p>
+        <button
+          className="w-full py-3 bg-transparent border border-accent text-accent font-headline font-extrabold text-xs uppercase tracking-widest rounded-lg active:scale-95 transition-transform"
+        >
+          Verify with World ID
+        </button>
+      </Section>
+
       {/* ── Agent Spending Limit ── */}
       <Section label="Agent Spending Limit">
         <p className="text-xs text-white/40 mb-3 leading-relaxed">
