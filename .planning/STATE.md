@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-04-05T04:30:36.264Z"
+status: verifying
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-04-05T04:33:30.124Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 15
-  completed_phases: 11
+  completed_phases: 12
   total_plans: 30
-  completed_plans: 29
+  completed_plans: 30
   percent: 100
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-04)
 
 Phase: 12 (send-crosschain) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-05
 
 Progress: [████████████████████] 8/8 plans (100%)
@@ -73,6 +73,7 @@ Progress: [████████████████████] 8/8 pla
 | Phase 10-onboarding-allowance P01 | 3 | 3 tasks | 3 files |
 | Phase 11 P01 | 3 | 2 tasks | 5 files |
 | Phase 12-send-crosschain P02 | 5 | 2 tasks | 3 files |
+| Phase 12-send-crosschain P01 | 15 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,9 @@ Recent decisions affecting current work:
 - [Phase 11]: useBalance memoizes fetchBalance with useCallback and exposes as refetch — enables post-send balance refresh
 - [Phase 12-send-crosschain]: SendModal calls POST /api/send instead of triggerMiniKitPay — real backend integration
 - [Phase 12-send-crosschain]: ConfirmCard URL fixed /confirm -> /api/confirm — one-line fix for silent over-threshold failure
+- [Phase 12-send-crosschain]: bridgeUsdc validates destinationChain against CCTP_DOMAIN_IDS at entry, throws Unknown destination chain error
+- [Phase 12-send-crosschain]: CHAIN_MAP in send route maps frontend display names (World Chain, Base) to backend keys (null, base)
+- [Phase 12-send-crosschain]: settle_crosschain_debt enum restricted to 4 CCTP-supported chains: base, ethereum, optimism, arbitrum
 
 ### Pending Todos
 
@@ -142,6 +146,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T04:30:36.260Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-04-05T04:33:30.120Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None
