@@ -84,8 +84,8 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
       }
 
       dlog('2-done', {
-        protocol_version: (completion.result as Record<string, unknown>)?.protocol_version,
-        has_responses: !!(completion.result as Record<string, unknown>)?.responses,
+        protocol_version: (completion.result as unknown as Record<string, unknown>)?.protocol_version,
+        has_responses: !!(completion.result as unknown as Record<string, unknown>)?.responses,
       });
 
       // Step 3: Verify proof on server
