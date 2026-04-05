@@ -4,22 +4,29 @@ import { AddFundsModal } from '@/components/AddFundsModal';
 import { ReceiveModal } from '@/components/ReceiveModal';
 import { SendModal } from '@/components/SendModal';
 import { useBalance } from '@/hooks/useBalance';
+import { useTransactions } from '@/hooks/useTransactions';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-// Prototype: balance, card, and transactions will be populated from API endpoints
-// once the backend (transaction history + balance) is connected.
-
-const MOCK_TRANSACTIONS = [
-  { id: '1', label: 'Received USDC', amount: '+$0.00', time: 'Today', positive: true },
-  { id: '2', label: 'Sent to 0x…a1f2', amount: '-$0.00', time: 'Yesterday', positive: false },
-  { id: '3', label: 'Add Funds', amount: '+$0.00', time: '2 days ago', positive: true },
-];
-
 const GENIE_SUMMARY =
   "Saving for a trip? I can help you limit dining out spend to get there faster.";
 
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString();
+}
+
+function formatWallet(wallet: string): string {
+  if (wallet.length <= 10) return wallet;
+  return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+}
 
 export const DashboardInterface = () => {
   const { data: session } = useSession();
@@ -29,7 +36,9 @@ export const DashboardInterface = () => {
   const [showSend, setShowSend] = useState(false);
   const [showAddFunds, setShowAddFunds] = useState(false);
   const walletAddress = session?.user?.walletAddress ?? '';
+  const userId = session?.user?.id ?? '';
   const { balance, loading: balanceLoading, error: balanceError, refetch: refetchBalance } = useBalance(walletAddress);
+  const { transactions, loading: txLoading } = useTransactions(userId);
 
   return (
     <>
@@ -127,26 +136,37 @@ export const DashboardInterface = () => {
         <p className="font-headline text-[10px] uppercase tracking-[0.25em] text-white/40 mb-4">
           Recent Transactions
         </p>
-        {/* TODO: replace with live transactions from API */}
         <div className="flex flex-col divide-y divide-white/5">
-          {MOCK_TRANSACTIONS.map((tx) => (
-            <div key={tx.id} className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-surface flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-outlined text-white/40 text-base">
-                    {tx.positive ? 'arrow_downward' : 'arrow_upward'}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white">{tx.label}</p>
-                  <p className="text-[11px] text-white/40">{tx.time}</p>
-                </div>
-              </div>
-              <p className={`font-headline font-bold text-sm ${tx.positive ? 'text-accent' : 'text-white/60'}`}>
-                {tx.amount}
-              </p>
+          {txLoading ? (
+            <div className="py-4 flex flex-col gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-10 bg-white/5 animate-pulse rounded" />
+              ))}
             </div>
-          ))}
+          ) : transactions.length === 0 ? (
+            <p className="py-4 text-sm text-white/40">No transactions yet</p>
+          ) : (
+            transactions.map((tx) => (
+              <div key={tx.id} className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-surface flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-white/40 text-base">
+                      arrow_upward
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      Sent to {formatWallet(tx.recipientWallet)}
+                    </p>
+                    <p className="text-[11px] text-white/40">{formatRelativeTime(tx.createdAt)}</p>
+                  </div>
+                </div>
+                <p className="font-headline font-bold text-sm text-white/60">
+                  -{parseFloat(tx.amountUsd).toFixed(2)} USDC
+                </p>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
