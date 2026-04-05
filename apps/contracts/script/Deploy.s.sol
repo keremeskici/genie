@@ -9,10 +9,9 @@ contract Deploy is Script {
     function run() external {
         uint256 deployerKey = vm.envUint("RELAYER_PRIVATE_KEY");
         address usdc = vm.envAddress("USDC_ADDRESS");
-        address permit2 = vm.envAddress("PERMIT2_ADDRESS");
 
         vm.startBroadcast(deployerKey);
-        GenieRouter router = new GenieRouter(usdc, permit2);
+        GenieRouter router = new GenieRouter(usdc);
         PayHandler handler = new PayHandler(usdc);
         vm.stopBroadcast();
 

@@ -1,10 +1,7 @@
 export const GenieRouterAbi = [
   {
     type: 'constructor',
-    inputs: [
-      { name: '_usdc', type: 'address' },
-      { name: '_permit2', type: 'address' },
-    ],
+    inputs: [{ name: '_usdc', type: 'address' }],
   },
   {
     type: 'function',

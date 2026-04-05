@@ -7,10 +7,9 @@ import {
 } from '../config/env';
 
 // ─── Hardcoded mainnet addresses (World Chain 480) ───────────────
-export const GENIE_ROUTER_ADDRESS = '0x1652E56F762E8DDeE4710111aA3b72a22a90998A' as `0x${string}`;
-export const PAY_HANDLER_ADDRESS = '0x3fc0Ba0e5221f6CCe6222D4a321eecddfAc38DaE' as `0x${string}`;
+export const GENIE_ROUTER_ADDRESS = '0x24079Ecda5eEd48a052Bbf795A54b05233B17102' as `0x${string}`;
+export const PAY_HANDLER_ADDRESS = '0x754F7fEaBf1950562c00f4e706cd8002f386F4e0' as `0x${string}`;
 export const USDC_ADDRESS = '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1' as `0x${string}`;
-export const PERMIT2_ADDRESS = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as `0x${string}`;
 
 export const chain = worldchain;
 
