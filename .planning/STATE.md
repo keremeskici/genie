@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 15 context gathered
-last_updated: "2026-04-05T05:32:34.238Z"
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-04-05T05:48:04.076Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 15
-  completed_phases: 14
-  total_plans: 32
-  completed_plans: 32
+  completed_phases: 15
+  total_plans: 33
+  completed_plans: 33
   percent: 100
 ---
 
@@ -76,6 +76,7 @@ Progress: [████████████████████] 8/8 pla
 | Phase 12-send-crosschain P01 | 15 | 2 tasks | 6 files |
 | Phase 13 P01 | 12 | 2 tasks | 5 files |
 | Phase 14-chat-polish P01 | 8 | 2 tasks | 2 files |
+| Phase 15 P01 | 15 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,9 @@ Recent decisions affecting current work:
 - [Phase 14-chat-polish]: contact_list JSON format in system prompt matches parseContactList expected shape: type, contacts array with name+walletAddress, optional username and prompt
 - [Phase 14-chat-polish]: setLimitSaved(true) fires only inside res.ok branch — avoids premature success flash on API failure
 - [Phase 14-chat-polish]: autoApproveUsd sent as numeric val from parseFloat — matches Zod schema z.number().positive() requirement
+- [Phase 15]: Shared format helpers in @/lib/format avoid duplication between Dashboard and Wallet
+- [Phase 15]: isVerified state initialized to false — Verify section appears by default, hides after onVerified callback
+- [Phase 15]: Auth guard on PATCH /api/users/profile is per-route resolveUserId call (D-09), not middleware
 
 ### Pending Todos
 
@@ -153,6 +157,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T05:32:34.234Z
-Stopped at: Phase 15 context gathered
-Resume file: .planning/phases/15-wallet-tab/15-CONTEXT.md
+Last session: 2026-04-05T05:48:04.073Z
+Stopped at: Completed 15-01-PLAN.md
+Resume file: None

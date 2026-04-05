@@ -9,7 +9,7 @@ Requirements for hackathon demo. Each maps to roadmap phases.
 
 ### World ID & Access Control
 
-- [ ] **WRID-01**: User can verify as human via World ID 4.0 IDKit widget inline in chat
+- [x] **WRID-01**: User can verify as human via World ID 4.0 IDKit widget inline in chat
 - [x] **WRID-02**: Server validates World ID proofs before allowing gated actions (send, debt, goals)
 - [x] **WRID-03**: Unverified users can chat, view balance, and receive money
 - [x] **WRID-04**: Verified users unlock send money, debt tracking, and agent automation
@@ -94,7 +94,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AGEN-05 | Phase 7 | Complete |
 | AGEN-06 | Phase 1 | Complete |
 | AGEN-07 | Phase 7 | Complete |
-| WRID-01 | Phase 15 | Pending |
+| WRID-01 | Phase 15 | Complete |
 | WRID-02 | Phase 8 | Complete |
 | WRID-03 | Phase 8 | Complete |
 | WRID-04 | Phase 8 | Complete |

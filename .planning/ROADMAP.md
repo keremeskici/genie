@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 12: Send Integration + Cross-Chain** - SendModal → send_usdc API + Circle Bridge Kit + ConfirmCard fix (completed 2026-04-05)
 - [x] **Phase 13: Recent Transactions** - Transactions REST endpoint + DashboardInterface wiring (completed 2026-04-05)
 - [x] **Phase 14: Chat Interface Polish** - Full chat→agent flow, system prompt fixes, profile save wiring (completed 2026-04-05)
-- [ ] **Phase 15: Wallet Tab Completion** - Balance + transactions + World ID verification on wallet tab + auth guards
+- [x] **Phase 15: Wallet Tab Completion** - Balance + transactions + World ID verification on wallet tab + auth guards (completed 2026-04-05)
 
 ## Phase Details
 
@@ -256,4 +256,4 @@ Gap closure phases 7-9 run sequentially after all original phases.
 | 12. Send + Cross-Chain | 2/2 | Complete   | 2026-04-05 |
 | 13. Recent Transactions | 1/1 | Complete    | 2026-04-05 |
 | 14. Chat Interface Polish | 1/1 | Complete    | 2026-04-05 |
-| 15. Wallet Tab Completion | 0/? | Not started | - |
+| 15. Wallet Tab Completion | 1/1 | Complete   | 2026-04-05 |
