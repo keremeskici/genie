@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: Financial Ops** - Smart contracts, balance check, send USDC, contact resolution
 - [x] **Phase 5: Cross-Chain & Social** - Arc CCTP deposits, spending tracking, debt management (completed 2026-04-04)
 - [x] **Phase 6: Mini App Shell** - Next.js Mini App, MiniKit 2.0, chat UI, streaming (parallel track) (completed 2026-04-04)
-- [ ] **Phase 7: API Wiring** - Path alignment + user provisioning to fix frontend-backend integration (gap closure)
+- [x] **Phase 7: API Wiring** - Path alignment + user provisioning to fix frontend-backend integration (gap closure) (completed 2026-04-04)
 - [ ] **Phase 8: Identity Wiring** - Verify-proof fix + auth boundary enforcement (gap closure)
 - [ ] **Phase 9: Confirmation Flow** - Wire frontend confirm UI for over-threshold USDC transfers (gap closure)
 
@@ -132,11 +132,14 @@ Plans:
 **Requirements**: WRID-01, WRID-02, WRID-03, WRID-04
 **Gap Closure:** Closes audit bugs #3 (verify path/body) and #5 (redirect commented out)
 **Success Criteria** (what must be TRUE):
-  1. BFF verify-proof calls the correct backend path with full proof payload (proof, merkle_root, verification_level)
+  1. BFF verify-proof validates with World ID Cloud API then sends slim payload (userId + nullifier_hash) to backend
   2. After verification, the user's worldId is written to the database
   3. Protected routes redirect unauthenticated users to the landing page
   4. isVerified correctly reflects database state after World ID verification
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 08-01-PLAN.md — Simplify backend verify (slim schema, remove double Cloud API call) + BFF slim payload + test updates
+- [ ] 08-02-PLAN.md — Middleware auth redirect + Verify component env var/onVerified + rp-signature session guard
 
 ### Phase 9: Confirmation Flow
 **Goal**: Over-threshold USDC transfers show a confirmation UI and execute upon user approval
@@ -163,6 +166,6 @@ Gap closure phases 7-9 run sequentially after all original phases.
 | 4. Financial Ops | 0/? | Not started | - |
 | 5. Cross-Chain & Social | 3/3 | Complete   | 2026-04-04 |
 | 6. Mini App Shell | 4/4 | Complete   | 2026-04-04 |
-| 7. API Wiring | 2/3 | In Progress|  |
-| 8. Identity Wiring | 0/? | Not started | - |
+| 7. API Wiring | 4/4 | In Progress | - |
+| 8. Identity Wiring | 0/2 | Not started | - |
 | 9. Confirmation Flow | 0/? | Not started | - |
