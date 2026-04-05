@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04)
 
 **Core value:** A single chat message can trigger a verified, human-backed financial transaction — send money, bridge USDC cross-chain, or plan savings — all inside World App with proof-of-human identity.
-**Current focus:** Phase 14 — chat-polish
+**Current focus:** Phase 15 — wallet-tab
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-05
+Phase: 15 (wallet-tab) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 15
+Last activity: 2026-04-05 -- Phase 15 execution started
 
 Progress: [████████████████████] 8/8 plans (100%)
 

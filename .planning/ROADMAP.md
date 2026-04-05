@@ -232,7 +232,9 @@ Plans:
   2. Wallet tab shows recent transactions (reuses Phase 13 endpoint)
   3. Verify component with onVerified callback is integrated into wallet tab
   4. Auth/session guards added to /api/confirm and /api/users/profile endpoints
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 15-01-PLAN.md — Wire useBalance + useTransactions + Verify into WalletInterface, extract format helpers, document auth guard
 
 ## Progress
 
