@@ -112,8 +112,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEBT-02 | Phase 7 | Complete |
 | MAPP-01 | Phase 6 | Complete |
 | MAPP-02 | Phase 6 | Complete |
-| MAPP-03 | Phase 14 | Pending |
-| MAPP-04 | Phase 14 | Pending |
+| MAPP-03 | Phase 14 | Complete |
+| MAPP-04 | Phase 14 | Complete |
 
 **Coverage:**
 - v1 requirements: 27 total
