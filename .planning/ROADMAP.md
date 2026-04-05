@@ -218,7 +218,9 @@ Plans:
   1. Chat messages stream from backend agent with tool results rendered correctly
   2. System prompt includes contact_list JSON format for disambiguation UI consistency
   3. ProfileInterface spending limit save calls PATCH /api/users/profile (not just local state)
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 14-01-PLAN.md — System prompt contact_list format + ProfileInterface API wiring
 
 ### Phase 15: Wallet Tab Completion
 **Goal**: Wallet tab shows live balance, transaction history, and World ID verification — with auth guards on sensitive endpoints
@@ -252,6 +254,6 @@ Gap closure phases 7-9 run sequentially after all original phases.
 | 10. Onboarding Allowance | 1/1 | Complete    | 2026-04-05 |
 | 11. Live Balance Display | 1/1 | Complete   | 2026-04-05 |
 | 12. Send + Cross-Chain | 2/2 | Complete   | 2026-04-05 |
-| 13. Recent Transactions | 1/1 | Complete   | 2026-04-05 |
-| 14. Chat Interface Polish | 0/? | Not started | - |
+| 13. Recent Transactions | 1/1 | Complete    | 2026-04-05 |
+| 14. Chat Interface Polish | 0/1 | Planned | - |
 | 15. Wallet Tab Completion | 0/? | Not started | - |
