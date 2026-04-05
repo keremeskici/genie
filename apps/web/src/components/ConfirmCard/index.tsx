@@ -48,7 +48,7 @@ export const ConfirmCard: React.FC<{ data: ConfirmCardData; userId: string }> = 
   const handleConfirm = async () => {
     setState('loading');
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/confirm`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ txId: data.txId, userId }),
