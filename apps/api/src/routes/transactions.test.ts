@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 
+const MOCK_USER = { walletAddress: '0xwallet123' };
+
 const MOCK_TRANSACTIONS = [
   {
     id: 'tx-1',
@@ -14,25 +16,44 @@ const MOCK_TRANSACTIONS = [
     createdAt: new Date('2026-04-05T00:00:00Z'),
     expiresAt: null,
   },
+  {
+    id: 'tx-2',
+    senderUserId: 'user-456',
+    recipientWallet: '0xwallet123',
+    amountUsd: '5.00',
+    txHash: '0xhash2',
+    status: 'confirmed',
+    category: 'transfers',
+    source: 'genie_send',
+    createdAt: new Date('2026-04-05T01:00:00Z'),
+    expiresAt: null,
+  },
 ];
 
 const mockLimit = vi.fn().mockResolvedValue(MOCK_TRANSACTIONS);
 const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
 const mockWhere = vi.fn(() => ({ orderBy: mockOrderBy }));
+const mockUserWhere = vi.fn().mockResolvedValue([MOCK_USER]);
 
 vi.mock('@genie/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genie/db')>();
   return {
     ...actual,
     db: {
-      select: () => ({
-        from: () => ({
-          where: mockWhere,
-        }),
+      select: (fields?: Record<string, unknown>) => ({
+        from: (table: unknown) => {
+          // User lookup returns mockUserWhere, transactions returns mockWhere chain
+          if (fields && 'walletAddress' in fields) {
+            return { where: mockUserWhere };
+          }
+          return { where: mockWhere };
+        },
       }),
     },
     transactions: {},
+    users: {},
     eq: actual.eq,
+    or: actual.or,
     desc: actual.desc,
   };
 });
@@ -47,21 +68,22 @@ beforeEach(() => {
   mockLimit.mockResolvedValue(MOCK_TRANSACTIONS);
   mockOrderBy.mockImplementation(() => ({ limit: mockLimit }));
   mockWhere.mockImplementation(() => ({ orderBy: mockOrderBy }));
+  mockUserWhere.mockResolvedValue([MOCK_USER]);
 });
 
 describe('GET /transactions', () => {
-  it('Test 1: returns 200 with transactions array for valid userId', async () => {
+  it('returns 200 with transactions including direction', async () => {
     const req = new Request('http://localhost/?userId=user-123');
     const res = await app.fetch(req);
     expect(res.status).toBe(200);
-    const json = await res.json() as { transactions: typeof MOCK_TRANSACTIONS };
+    const json = await res.json() as { transactions: Array<{ id: string; direction: string }> };
     expect(Array.isArray(json.transactions)).toBe(true);
-    expect(json.transactions).toHaveLength(1);
-    expect(json.transactions[0].id).toBe('tx-1');
-    expect(json.transactions[0].amountUsd).toBe('10.00');
+    expect(json.transactions).toHaveLength(2);
+    expect(json.transactions[0].direction).toBe('sent');
+    expect(json.transactions[1].direction).toBe('received');
   });
 
-  it('Test 2: returns 400 MISSING_USER_ID when userId is not provided', async () => {
+  it('returns 400 MISSING_USER_ID when userId is not provided', async () => {
     const req = new Request('http://localhost/');
     const res = await app.fetch(req);
     expect(res.status).toBe(400);
@@ -69,7 +91,8 @@ describe('GET /transactions', () => {
     expect(json.error).toBe('MISSING_USER_ID');
   });
 
-  it('Test 3: returns 500 FETCH_FAILED when DB throws', async () => {
+  it('returns 500 FETCH_FAILED when DB throws', async () => {
+    mockUserWhere.mockResolvedValueOnce([MOCK_USER]);
     mockWhere.mockImplementationOnce(() => ({
       orderBy: vi.fn(() => ({
         limit: vi.fn().mockRejectedValue(new Error('DB connection error')),

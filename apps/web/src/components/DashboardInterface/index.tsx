@@ -136,18 +136,20 @@ export const DashboardInterface = () => {
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-surface flex items-center justify-center flex-shrink-0">
                     <span className="material-symbols-outlined text-white/40 text-base">
-                      arrow_upward
+                      {tx.direction === 'received' ? 'arrow_downward' : 'arrow_upward'}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">
-                      Sent to {formatWallet(tx.recipientWallet)}
+                      {tx.direction === 'received'
+                        ? `Received from ${formatWallet(tx.recipientWallet)}`
+                        : `Sent to ${formatWallet(tx.recipientWallet)}`}
                     </p>
                     <p className="text-[11px] text-white/40">{formatRelativeTime(tx.createdAt)}</p>
                   </div>
                 </div>
-                <p className="font-headline font-bold text-sm text-white/60">
-                  -{parseFloat(tx.amountUsd).toFixed(2)} USDC
+                <p className={`font-headline font-bold text-sm ${tx.direction === 'received' ? 'text-[#CCFF00]' : 'text-white/60'}`}>
+                  {tx.direction === 'received' ? '+' : '-'}{parseFloat(tx.amountUsd).toFixed(2)} USDC
                 </p>
               </div>
             ))

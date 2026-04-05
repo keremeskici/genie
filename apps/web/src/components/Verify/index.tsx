@@ -57,18 +57,17 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
         return;
       }
 
-      // Step 3: Verify the proof on the server
+      // Step 3: Verify the proof on the server (forward as-is per v4 spec)
       const response = await fetch('/api/verify-proof', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          payload: completion.result,
-          action: WORLD_ACTION,
+          rp_id: rpContext.rp_id,
+          idkitResponse: completion.result,
         }),
       });
 
-      const data = await response.json();
-      if (response.ok && data.verifyRes?.success) {
+      if (response.ok) {
         setButtonState('success');
         onVerified?.();
       } else {

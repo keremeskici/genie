@@ -13,6 +13,7 @@ export interface Transaction {
   source: string;
   createdAt: string;
   expiresAt: string | null;
+  direction: 'sent' | 'received';
 }
 
 export function useTransactions(userId: string) {
