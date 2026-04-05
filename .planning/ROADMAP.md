@@ -150,7 +150,9 @@ Plans:
   1. When send_usdc returns confirmation_required, the chat UI renders a confirm/cancel button
   2. Clicking confirm calls POST /confirm with the correct txId
   3. The transaction executes after confirmation and the user sees a success message
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 09-01-PLAN.md — ConfirmCard component, system prompt update, ChatInterface wiring
 
 ## Progress
 
@@ -168,4 +170,4 @@ Gap closure phases 7-9 run sequentially after all original phases.
 | 6. Mini App Shell | 4/4 | Complete   | 2026-04-04 |
 | 7. API Wiring | 4/4 | In Progress | - |
 | 8. Identity Wiring | 0/2 | Not started | - |
-| 9. Confirmation Flow | 0/? | Not started | - |
+| 9. Confirmation Flow | 0/1 | Not started | - |

@@ -9,17 +9,18 @@
   "dependencies": {
     "@0gfoundation/0g-ts-sdk": "^1.2.1",
     "@ai-sdk/openai": "^3.0.50",
+    "@circle-fin/bridge-kit": "^1.8.1",
     "@genie/db": "workspace:*",
     "@hono/node-server": "^1.19.12",
     "ai": "^6.0.146",
     "ethers": "^6.16.0",
     "hono": "^4.12.10",
+    "tsx": "^4.21.0",
     "viem": "2.45.3",
     "zod": "^3.24.6"
   },
   "devDependencies": {
     "@types/node": "latest",
-    "tsx": "^4.21.0",
     "typescript": "^5.0.0",
     "vitest": "latest"
   }

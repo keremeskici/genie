@@ -12,6 +12,7 @@ import { createListDebtsTool } from '../tools/list-debts';
 import { createGetSpendingTool } from '../tools/get-spending';
 import { createAddContactTool } from '../tools/add-contact';
 import { createListContactsTool } from '../tools/list-contacts';
+import { createSettleCrosschainDebtTool } from '../tools/settle-crosschain-debt';
 import { DEFAULT_MEMORY } from '../kv/types';
 import { PLANNING_MODEL, ACTION_MODEL } from './providers';
 import { MAX_OUTPUT_TOKENS, WINDOW_LIMIT } from '../config/env';
@@ -100,6 +101,9 @@ export async function runAgent(request: ChatRequest) {
   const listContactsTool = request.userId
     ? createListContactsTool(request.userId)
     : undefined;
+  const settleCrosschainDebtTool = request.userId
+    ? createSettleCrosschainDebtTool(request.userId, resolvedUserContext)
+    : undefined;
 
   // Inject settlement notices into user message context (D-10)
   let enrichedUserMessage = userMessage;
@@ -136,6 +140,7 @@ export async function runAgent(request: ChatRequest) {
       ...(getSpendingTool ? { get_spending: getSpendingTool } : {}),
       ...(addContactTool ? { add_contact: addContactTool } : {}),
       ...(listContactsTool ? { list_contacts: listContactsTool } : {}),
+      ...(settleCrosschainDebtTool ? { settle_crosschain_debt: settleCrosschainDebtTool } : {}),
     },
     maxOutputTokens: MAX_OUTPUT_TOKENS,
     stopWhen: stepCountIs(5),
