@@ -118,12 +118,20 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
           <p className="font-headline text-white/80 text-center text-sm px-8 mb-8">
             Transaction failed or was rejected
           </p>
-          <button
-            onClick={runApproval}
-            className="bg-[#ccff00] text-black font-headline font-bold rounded-2xl px-8 py-4"
-          >
-            Try Again
-          </button>
+          <div className="flex flex-col gap-3 w-full px-12">
+            <button
+              onClick={runApproval}
+              className="bg-[#ccff00] text-black font-headline font-bold rounded-2xl py-4 active:scale-95 transition-transform"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={onClose}
+              className="bg-white/10 text-white/60 font-headline font-bold rounded-2xl py-4 active:scale-95 transition-transform"
+            >
+              Cancel
+            </button>
+          </div>
         </>
       )}
     </div>
