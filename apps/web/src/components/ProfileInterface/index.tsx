@@ -68,7 +68,7 @@ export const ProfileInterface = () => {
           </div>
           <button
             onClick={handleSaveLimit}
-            className="flex-shrink-0 min-w-[64px] px-4 py-3 bg-accent text-black font-headline font-extrabold text-xs uppercase tracking-widest active:scale-95 transition-transform text-center whitespace-nowrap rounded-lg"
+            className="flex-shrink-0 min-w-[64px] px-4 py-3 bg-transparent border border-accent text-accent font-headline font-extrabold text-xs uppercase tracking-widest active:scale-95 transition-transform text-center whitespace-nowrap rounded-lg"
           >
             {limitSaved ? 'Saved!' : 'Set'}
           </button>
