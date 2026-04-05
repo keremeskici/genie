@@ -35,8 +35,6 @@ export default function Home() {
           .then(async () => {
             const freshSession = await getSession();
             if (!freshSession) {
-              // signIn completed but no session was created — do NOT navigate
-              // (navigating would trigger middleware → redirect back to '/' → infinite loop)
               setAuthError('Sign in failed. Please try again.');
               return;
             }
