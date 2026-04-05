@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
 import { createPublicClient, encodeFunctionData, http } from 'viem';
@@ -17,11 +17,16 @@ type ApprovalState = 'pending' | 'success' | 'error';
 
 export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverlayProps) {
   const [state, setState] = useState<ApprovalState>('pending');
+  const hasRun = useRef(false);
 
-  const client = createPublicClient({
-    chain: worldchain,
-    transport: http(process.env.NEXT_PUBLIC_WORLD_CHAIN_RPC_URL!),
-  });
+  const client = useMemo(
+    () =>
+      createPublicClient({
+        chain: worldchain,
+        transport: http(process.env.NEXT_PUBLIC_WORLD_CHAIN_RPC_URL!),
+      }),
+    [],
+  );
 
   const { poll } = useUserOperationReceipt({ client });
 
@@ -43,6 +48,10 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
         ],
       });
 
+      if (!result?.data?.userOpHash) {
+        throw new Error('MiniKit did not return a userOpHash — approval may not have been submitted');
+      }
+
       await poll(result.data.userOpHash);
 
       setState('success');
@@ -56,6 +65,8 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
   }, [budgetUsd, poll, onSuccess]);
 
   useEffect(() => {
+    if (hasRun.current) return;
+    hasRun.current = true;
     runApproval();
   }, [runApproval]);
 
