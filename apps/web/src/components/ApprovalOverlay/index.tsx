@@ -5,7 +5,7 @@ import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
 import { createPublicClient, encodeFunctionData, http } from 'viem';
 import { worldchain } from 'viem/chains';
-import { ERC20_APPROVE_ABI, USDC_ADDRESS, GENIE_ROUTER_ADDRESS } from '@/lib/contracts';
+import { PERMIT2_APPROVE_ABI, PERMIT2_ADDRESS, USDC_ADDRESS, GENIE_ROUTER_ADDRESS } from '@/lib/contracts';
 
 interface ApprovalOverlayProps {
   budgetUsd: number;
@@ -41,11 +41,11 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
         chainId: 480,
         transactions: [
           {
-            to: USDC_ADDRESS,
+            to: PERMIT2_ADDRESS,
             data: encodeFunctionData({
-              abi: ERC20_APPROVE_ABI,
+              abi: PERMIT2_APPROVE_ABI,
               functionName: 'approve',
-              args: [GENIE_ROUTER_ADDRESS, requiredAmount],
+              args: [USDC_ADDRESS, GENIE_ROUTER_ADDRESS, requiredAmount, 0],
             }),
           },
         ],
