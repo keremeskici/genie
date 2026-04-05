@@ -9,6 +9,7 @@ import { triggerMiniKitPay, requestMiniKitPermissions } from '@/lib/minikit';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ContactList, parseContactList, type ContactData } from '../ContactCard';
+import { ConfirmCard, parseConfirmCard } from '../ConfirmCard';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 
 export interface AiInsight {
@@ -202,6 +203,7 @@ export const ChatInterface = () => {
               <AiMessageBubble
                 key={message.id}
                 parts={message.parts}
+                userId={session?.user?.id ?? ''}
                 onContactSelect={(contact: ContactData) => {
                   if (status !== 'ready') return;
                   sendMessage(
@@ -317,9 +319,11 @@ function UserMessage({
 function AiMessageBubble({
   parts,
   onContactSelect,
+  userId,
 }: {
   parts: Array<{ type: string; text?: string }>;
   onContactSelect: (contact: ContactData) => void;
+  userId: string;
 }) {
   const textContent = parts
     .filter((p) => p.type === 'text')
@@ -327,9 +331,10 @@ function AiMessageBubble({
     .join('');
 
   const contactData = parseContactList(textContent);
+  const confirmData = parseConfirmCard(textContent);
 
-  const markdownText = contactData
-    ? textContent.replace(/```json\s*\n[\s\S]*?\n```/, '').trim()
+  const markdownText = (contactData || confirmData)
+    ? textContent.replace(/```json\s*\n[\s\S]*?\n```/g, '').trim()
     : textContent;
 
   return (
@@ -394,6 +399,9 @@ function AiMessageBubble({
             </ReactMarkdown>
           )}
           {contactData && <ContactList data={contactData} onSelect={onContactSelect} />}
+          {confirmData && (
+            <ConfirmCard data={confirmData} userId={userId} />
+          )}
         </div>
       </div>
     </div>
