@@ -16,9 +16,9 @@ const MOCK_TRANSACTIONS = [
   },
 ];
 
-const mockOrderBy = vi.fn().mockResolvedValue(MOCK_TRANSACTIONS);
-const mockLimit = vi.fn(() => ({ orderBy: mockOrderBy }));
-const mockWhere = vi.fn(() => ({ orderBy: mockOrderBy, limit: mockLimit }));
+const mockLimit = vi.fn().mockResolvedValue(MOCK_TRANSACTIONS);
+const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
+const mockWhere = vi.fn(() => ({ orderBy: mockOrderBy }));
 
 vi.mock('@genie/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genie/db')>();
@@ -44,9 +44,9 @@ app.route('/', transactionsRoute);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockOrderBy.mockResolvedValue(MOCK_TRANSACTIONS);
-  mockLimit.mockImplementation(() => ({ orderBy: mockOrderBy }));
-  mockWhere.mockImplementation(() => ({ orderBy: mockOrderBy, limit: mockLimit }));
+  mockLimit.mockResolvedValue(MOCK_TRANSACTIONS);
+  mockOrderBy.mockImplementation(() => ({ limit: mockLimit }));
+  mockWhere.mockImplementation(() => ({ orderBy: mockOrderBy }));
 });
 
 describe('GET /transactions', () => {
@@ -71,9 +71,8 @@ describe('GET /transactions', () => {
 
   it('Test 3: returns 500 FETCH_FAILED when DB throws', async () => {
     mockWhere.mockImplementationOnce(() => ({
-      orderBy: vi.fn().mockRejectedValue(new Error('DB connection error')),
-      limit: vi.fn(() => ({
-        orderBy: vi.fn().mockRejectedValue(new Error('DB connection error')),
+      orderBy: vi.fn(() => ({
+        limit: vi.fn().mockRejectedValue(new Error('DB connection error')),
       })),
     }));
     const req = new Request('http://localhost/?userId=user-123');
