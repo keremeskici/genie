@@ -82,6 +82,8 @@ usersRoute.patch('/profile', async (c) => {
 
     const { userId: rawUserId, autoApproveUsd } = parsed.data;
 
+    // Auth guard (D-08): resolveUserId validates the user exists — the userId
+    // in the request body is the caller's identity signal (stateless API).
     const userId = await resolveUserId(rawUserId);
     if (!userId) {
       return c.json({ error: 'USER_NOT_FOUND', message: 'Could not resolve userId' }, 404);
