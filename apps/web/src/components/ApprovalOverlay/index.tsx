@@ -99,7 +99,7 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
       setErrorMsg(err instanceof Error ? err.message : 'Transaction failed or was rejected');
       setState('error');
     }
-  }, [budgetUsd, poll, onSuccess, requiredAmount, verifyAllowance]);
+  }, [poll, onSuccess, requiredAmount, verifyAllowance]);
 
   useEffect(() => {
     if (hasRun.current) return;
@@ -171,12 +171,18 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
           <p className="text-white/40 text-xs text-center px-12 mb-8">
             {errorMsg}
           </p>
-          <div className="w-full px-12">
+          <div className="w-full px-12 flex flex-col gap-3">
             <button
               onClick={() => { hasRun.current = false; runApproval(); }}
               className="w-full bg-[#ccff00] text-black font-headline font-bold rounded-2xl py-4 active:scale-95 transition-transform"
             >
               Try Again
+            </button>
+            <button
+              onClick={onClose}
+              className="w-full bg-transparent border border-white/20 text-white/60 font-headline font-bold rounded-2xl py-4 active:scale-95 transition-transform"
+            >
+              Cancel
             </button>
           </div>
         </>

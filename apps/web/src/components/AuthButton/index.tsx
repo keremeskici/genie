@@ -55,7 +55,7 @@ export const AuthButton = () => {
           setIsPending(false);
         });
     }
-  }, [isInstalled]);
+  }, [isInstalled, router]);
 
   return (
     <LiveFeedback
