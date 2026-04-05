@@ -3,6 +3,7 @@
 import { AddFundsModal } from '@/components/AddFundsModal';
 import { ReceiveModal } from '@/components/ReceiveModal';
 import { SendModal } from '@/components/SendModal';
+import { useBalance } from '@/hooks/useBalance';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -28,6 +29,7 @@ export const DashboardInterface = () => {
   const [showSend, setShowSend] = useState(false);
   const [showAddFunds, setShowAddFunds] = useState(false);
   const walletAddress = session?.user?.walletAddress ?? '';
+  const { balance, loading: balanceLoading, error: balanceError, refetch: refetchBalance } = useBalance(walletAddress);
 
   return (
     <>
@@ -90,10 +92,15 @@ export const DashboardInterface = () => {
         <p className="font-headline text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">
           Total Balance
         </p>
-        {/* TODO: replace $0.00 with live balance from API */}
-        <p className="font-headline text-5xl font-extrabold tracking-tighter text-white">
-          $0.00
-        </p>
+        {balanceLoading ? (
+          <div className="h-12 w-32 bg-white/10 animate-pulse rounded" />
+        ) : balanceError ? (
+          <p className="font-headline text-5xl font-extrabold tracking-tighter text-white/30">$--.--</p>
+        ) : (
+          <p className="font-headline text-5xl font-extrabold tracking-tighter text-white">
+            ${balance ?? '0.00'}
+          </p>
+        )}
       </div>
 
       {/* ── Quick actions ── */}
@@ -146,7 +153,7 @@ export const DashboardInterface = () => {
 
     </div>
     </div>
-      {showSend && <SendModal onClose={() => setShowSend(false)} />}
+      {showSend && <SendModal onClose={() => { setShowSend(false); refetchBalance(); }} />}
       {showReceive && walletAddress && (
         <ReceiveModal address={walletAddress} onClose={() => setShowReceive(false)} />
       )}

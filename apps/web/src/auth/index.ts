@@ -48,58 +48,65 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         signedNonce: string;
         finalPayloadJson: string;
       }) => {
+        console.log('[auth] authorize attempt started');
         const expectedSignedNonce = hashNonce({ nonce });
 
         if (signedNonce !== expectedSignedNonce) {
-          console.log('Invalid signed nonce');
+          console.error('[auth] Invalid signed nonce. Check HMAC_SECRET_KEY.');
           return null;
         }
 
         const finalPayload: MiniAppWalletAuthSuccessPayload =
           JSON.parse(finalPayloadJson);
+        
+        console.log('[auth] verifying SIWE message...');
         const result = await verifySiweMessage(finalPayload, nonce);
 
         if (!result.isValid || !result.siweMessageData.address) {
-          console.log('Invalid final payload');
+          console.error('[auth] SIWE verification failed:', result);
           return null;
         }
 
-        // Optionally, fetch the user info from your own database
+        console.log('[auth] fetching user info from MiniKit...');
         const userInfo = await MiniKit.getUserInfo(finalPayload.address);
-
         const walletAddress = result.siweMessageData.address;
 
-        // D-01: Provision user in backend — get-or-create by wallet address, returns UUID
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         if (!apiUrl) {
-          console.error('[auth] NEXT_PUBLIC_API_URL is not set');
+          console.error('[auth] NEXT_PUBLIC_API_URL is missing in environment');
           return null;
         }
 
-        const provisionRes = await fetch(`${apiUrl}/api/users/provision`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        console.log(`[auth] provisioning user at: ${apiUrl}/api/users/provision`);
+        try {
+          const provisionRes = await fetch(`${apiUrl}/api/users/provision`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              walletAddress,
+              displayName: userInfo?.username ?? null,
+            }),
+          });
+
+          if (!provisionRes.ok) {
+            console.error('[auth] backend provisioning failed:', provisionRes.status, await provisionRes.text());
+            return null;
+          }
+
+          const { userId, needsOnboarding } = await provisionRes.json();
+          console.log('[auth] authorize successful for user:', userId);
+
+          return {
+            id: userId,
             walletAddress,
-            displayName: userInfo?.username ?? null,
-          }),
-        });
-
-        // D-04: If provisioning fails, fail auth entirely
-        if (!provisionRes.ok) {
-          console.error('[auth] provisioning failed:', await provisionRes.text());
+            needsOnboarding,
+            username: userInfo?.username ?? '',
+            profilePictureUrl: userInfo?.profilePictureUrl ?? '',
+          };
+        } catch (err) {
+          console.error('[auth] fetch error during provisioning:', err);
           return null;
         }
-
-        const { userId, needsOnboarding } = await provisionRes.json();
-
-        return {
-          id: userId,                              // D-13: UUID from DB
-          walletAddress,                           // D-13: separate field
-          needsOnboarding,                         // D-15: computed flag
-          username: userInfo?.username ?? '',
-          profilePictureUrl: userInfo?.profilePictureUrl ?? '',
-        };
       },
     }),
   ],
