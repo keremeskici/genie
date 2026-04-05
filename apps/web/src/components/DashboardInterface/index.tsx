@@ -4,6 +4,7 @@ import { AddFundsModal } from '@/components/AddFundsModal';
 import { ReceiveModal } from '@/components/ReceiveModal';
 import { SendModal } from '@/components/SendModal';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 // Prototype: balance, card, and transactions will be populated from API endpoints
@@ -21,6 +22,7 @@ const GENIE_SUMMARY =
 
 export const DashboardInterface = () => {
   const { data: session } = useSession();
+  const router = useRouter();
 
   const [showReceive, setShowReceive] = useState(false);
   const [showSend, setShowSend] = useState(false);
@@ -41,18 +43,24 @@ export const DashboardInterface = () => {
 
       {/* ── Genie finance summary ── */}
       <div className="flex items-end gap-3 px-6 mb-8">
-        {/* Genie */}
-        <div className="flex-shrink-0 w-20 h-24 self-end">
+        {/* Genie — tap to open chat */}
+        <button
+          onClick={() => router.push('/chat')}
+          className="flex-shrink-0 w-20 h-24 self-end active:opacity-70 transition-opacity duration-150"
+        >
           <img
             src="/genie.png"
             alt="Genie"
             className="w-full h-full object-contain"
             style={{ mixBlendMode: 'screen' }}
           />
-        </div>
+        </button>
 
-        {/* Speech bubble */}
-        <div className="relative flex-1 bg-surface p-4 rounded-t-2xl rounded-br-2xl">
+        {/* Speech bubble — tap to open chat */}
+        <button
+          onClick={() => router.push('/chat')}
+          className="relative flex-1 bg-surface p-4 rounded-t-2xl rounded-br-2xl text-left active:opacity-70 transition-opacity duration-150"
+        >
           {/* Tail pointing left toward genie */}
           <span
             className="absolute bottom-5 -left-[9px] w-0 h-0"
@@ -74,7 +82,7 @@ export const DashboardInterface = () => {
             </span>
           </div>
           <p className="text-sm text-white/80 leading-relaxed">{GENIE_SUMMARY}</p>
-        </div>
+        </button>
       </div>
 
       {/* ── Total Balance ── */}

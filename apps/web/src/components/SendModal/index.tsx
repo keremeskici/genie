@@ -12,6 +12,7 @@ export function SendModal({ onClose }: SendModalProps) {
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [selectedChain, setSelectedChain] = useState<'Base' | 'Arbitrum' | 'Optimism' | 'Polygon'>('Base');
 
   useEffect(() => {
     const t = requestAnimationFrame(() => setVisible(true));
@@ -34,7 +35,7 @@ export function SendModal({ onClose }: SendModalProps) {
     const result = await triggerMiniKitPay({
       to: recipient.trim(),
       amountUsdc: parseFloat(amount),
-      description: `Send ${amount} USDC via Genie`,
+      description: `Send ${amount} USDC via Genie on ${selectedChain}`,
     });
     if (result?.success) {
       setStatus('success');
@@ -132,6 +133,30 @@ export function SendModal({ onClose }: SendModalProps) {
               ${amt}
             </button>
           ))}
+        </div>
+
+        {/* Destination Chain */}
+        <div className="flex flex-col gap-1.5">
+          <p className="font-headline text-[10px] uppercase tracking-widest text-white/40 font-bold">
+            Destination Chain
+          </p>
+          <div className="bg-background flex items-center px-4 py-3 relative">
+            <select
+              value={selectedChain}
+              onChange={(e) => setSelectedChain(e.target.value as typeof selectedChain)}
+              className="w-full bg-transparent outline-none font-headline font-bold text-xs uppercase tracking-widest appearance-none cursor-pointer"
+              style={{ fontSize: '16px', color: '#ccff00' }}
+            >
+              {(['Base', 'Arbitrum', 'Optimism', 'Polygon'] as const).map((chain) => (
+                <option key={chain} value={chain} style={{ backgroundColor: '#0a0a0a', color: '#fff' }}>
+                  {chain}
+                </option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined text-white/30 text-base pointer-events-none flex-shrink-0">
+              expand_more
+            </span>
+          </div>
         </div>
 
         {/* Status message */}

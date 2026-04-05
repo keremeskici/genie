@@ -34,6 +34,12 @@ export default async function RootLayout({
           rel="stylesheet"
           href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap"
         />
+
+        {/* Monument Extended — onboarding CTAs */}
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=monument-extended@400,800&display=swap"
+        />
       </head>
       <body>
         <ClientProviders session={session}>{children}</ClientProviders>

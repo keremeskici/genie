@@ -129,8 +129,8 @@ export default function Onboarding() {
         <button
           onClick={ctaAction}
           disabled={!canProceed}
-          className="flex-1 flex items-center justify-center py-5 font-headline font-black italic text-2xl uppercase tracking-tight active:opacity-60 transition-opacity duration-150 disabled:opacity-20 disabled:pointer-events-none rounded-2xl"
-          style={{ backgroundColor: '#ccff00', color: '#000000' }}
+          className="flex-1 flex items-center justify-center py-5 font-black italic text-2xl uppercase tracking-tight active:opacity-60 transition-opacity duration-150 disabled:opacity-20 disabled:pointer-events-none rounded-2xl"
+          style={{ fontFamily: "'Monument Extended', sans-serif", backgroundColor: '#ccff00', color: '#000000' }}
         >
           {ctaLabel}
         </button>
