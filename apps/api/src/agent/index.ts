@@ -90,7 +90,7 @@ export async function runAgent(request: ChatRequest) {
     ? createCreateDebtTool(request.userId, resolvedUserContext)
     : undefined;
   const listDebtsTool = request.userId
-    ? createListDebtsTool(request.userId)
+    ? createListDebtsTool(request.userId, resolvedUserContext)
     : undefined;
   const getSpendingTool = request.userId
     ? createGetSpendingTool(request.userId)
@@ -147,6 +147,14 @@ export async function runAgent(request: ChatRequest) {
     onStepFinish: ({ toolResults }) => {
       if (toolResults && toolResults.length > 0) {
         console.log('[agent] tool results:', JSON.stringify(toolResults, null, 2));
+      }
+    },
+    onFinish: ({ text, finishReason, totalUsage, steps }) => {
+      console.log(
+        `[agent] stream finished: finishReason=${finishReason}, textLength=${text.length}, steps=${steps.length}, inputTokens=${totalUsage.inputTokens}, outputTokens=${totalUsage.outputTokens}`,
+      );
+      if (text.length === 0) {
+        console.warn('[agent] stream finished with empty text');
       }
     },
     onError: ({ error }) => {

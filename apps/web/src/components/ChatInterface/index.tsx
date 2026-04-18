@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { TextStreamChatTransport } from 'ai';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -36,6 +36,7 @@ export const ChatInterface = () => {
   const [canScroll, setCanScroll] = useState(false);
   const [inputBottom, setInputBottom] = useState(NAV_HEIGHT);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [lastSendDebug, setLastSendDebug] = useState<string>('idle');
   const [placeholder] = useState(
     () => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)],
   );
@@ -45,12 +46,18 @@ export const ChatInterface = () => {
   const permissionsRequested = useRef(false);
 
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: `${API_URL}/api/chat` }),
+    () => new TextStreamChatTransport({ api: `${API_URL}/api/chat` }),
     [],
   );
 
   const { messages, sendMessage, status, error, regenerate } = useChat({
     transport,
+    onError: (err) => {
+      console.error('[chat] useChat error:', err);
+    },
+    onFinish: ({ message }) => {
+      console.log('[chat] assistant message finished:', message);
+    },
   });
 
   const isThinking = status === 'submitted';
@@ -159,13 +166,19 @@ export const ChatInterface = () => {
       permissionsRequested.current = true;
       requestMiniKitPermissions().then((perms) => {
         if (perms) console.log('[minikit] permissions granted:', perms);
+      }).catch((err) => {
+        console.warn('[minikit] permission request failed:', err);
       });
     }
 
-    if (MiniKit.isInstalled()) {
-      await MiniKit.sendHapticFeedback({ hapticsType: 'impact', style: 'medium' });
-    }
+    setLastSendDebug(`sending "${text}" to ${API_URL || 'same-origin'}/api/chat`);
     sendMessage({ text }, { body: { userId: session?.user?.id } });
+
+    if (MiniKit.isInstalled()) {
+      MiniKit.sendHapticFeedback({ hapticsType: 'impact', style: 'medium' }).catch((err) => {
+        console.warn('[minikit] haptic feedback failed:', err);
+      });
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -228,6 +241,32 @@ export const ChatInterface = () => {
         style={{ bottom: inputBottom, touchAction: 'none' }}
       >
         <div className="max-w-md mx-auto">
+          {process.env.NEXT_PUBLIC_APP_ENV !== 'production' && (
+            <div className="mb-2 rounded-lg bg-black/80 px-3 py-2 text-[10px] leading-snug text-white/70 font-mono break-words">
+              <div>chat status: {status}</div>
+              <div>api: {API_URL || 'same-origin'}/api/chat</div>
+              <div>session user: {session?.user?.id ?? 'none'}</div>
+              <div>messages: {messages.length}</div>
+              <div>
+                last parts:{' '}
+                {messages.at(-1)?.parts?.map((part) => part.type).join(', ') ?? 'none'}
+              </div>
+              <div>
+                roles:{' '}
+                {messages
+                  .map((message) => {
+                    const textLength = message.parts
+                      ?.filter((part) => part.type === 'text')
+                      .map((part) => part.text ?? '')
+                      .join('').length ?? 0;
+                    return `${message.role}:${textLength}`;
+                  })
+                  .join(' | ') || 'none'}
+              </div>
+              <div>last send: {lastSendDebug}</div>
+              {error && <div>error: {error.message}</div>}
+            </div>
+          )}
           <div className="bg-surface p-2 flex items-end gap-2 rounded-2xl">
             <textarea
               ref={textareaRef}

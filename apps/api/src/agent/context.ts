@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { ModelMessage } from 'ai';
 import type { AgentMemory } from '../kv/types';
+import { ALLOW_UNVERIFIED_AGENT_ACTIONS } from '../config/env';
 
 export interface UserContext {
   walletAddress: string;
@@ -40,7 +41,16 @@ export function assembleContext(
   const memoryStr = userContext.memory
     ? `, goals=${userContext.memory.activeGoals.length}, profile=${JSON.stringify(userContext.memory.financialProfile)}`
     : '';
-  const contextInjection = `[User context: wallet=${userContext.walletAddress}, name=${userContext.displayName}, threshold=$${userContext.autoApproveUsd}${memoryStr}]`;
+  const bypassStr = ALLOW_UNVERIFIED_AGENT_ACTIONS
+    ? ', verificationBypass=true (local testing only — gated actions available)'
+    : '';
+  const verifiedStr = userContext.isVerified
+    ? ', verified=true'
+    : ALLOW_UNVERIFIED_AGENT_ACTIONS
+      ? ', verified=false (local testing bypass active)'
+      : ', verified=false (gated actions unavailable — suggest World ID verification)';
+  const humanBackedStr = `, humanBacked=${userContext.isHumanBacked}`;
+  const contextInjection = `[User context: wallet=${userContext.walletAddress}, name=${userContext.displayName}, threshold=$${userContext.autoApproveUsd}${memoryStr}${verifiedStr}${humanBackedStr}${bypassStr}]`;
 
   return {
     system: systemPrompt,

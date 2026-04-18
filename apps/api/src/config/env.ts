@@ -35,21 +35,22 @@ export const WORLD_USERNAME_API_URL =
   optionalEnv('WORLD_USERNAME_API_URL') ?? 'https://usernames.worldcoin.org/api/v1';
 
 // --- World Chain ---
-export const WORLD_CHAIN_RPC_URL = optionalEnv('WORLD_CHAIN_RPC_URL') ?? 'https://worldchain-mainnet.g.alchemy.com/public';
+export const WORLD_CHAIN_RPC_URL = optionalEnv('WORLD_CHAIN_RPC_URL');
+export const WORLD_CHAIN_TESTNET = process.env.WORLD_CHAIN_TESTNET === 'true';
 export const RELAYER_PRIVATE_KEY = optionalEnv('RELAYER_PRIVATE_KEY');
+export const GENIE_ROUTER_ADDRESS = (optionalEnv('GENIE_ROUTER_ADDRESS') ??
+  '0x0000000000000000000000000000000000000000') as `0x${string}`;
+export const PAY_HANDLER_ADDRESS = (optionalEnv('PAY_HANDLER_ADDRESS') ??
+  '0x0000000000000000000000000000000000000000') as `0x${string}`;
+export const USDC_ADDRESS_TESTNET =
+  optionalEnv('USDC_ADDRESS_TESTNET') ?? '0x66145f38cBAC35Ca6F1Dfb4914dF98F1614aeA88';
+export const USDC_ADDRESS_MAINNET =
+  optionalEnv('USDC_ADDRESS_MAINNET') ?? '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1';
 
 // --- API Server ---
 export const PORT = parseInt(process.env.PORT ?? '3001', 10);
 export const MAX_OUTPUT_TOKENS = parseInt(process.env.MAX_OUTPUT_TOKENS ?? '2048', 10);
 export const WINDOW_LIMIT = parseInt(process.env.WINDOW_LIMIT ?? '40', 10);
-
-// --- Deployment Metadata ---
-export const NODE_ENV = optionalEnv('NODE_ENV');
-export const VERCEL = optionalEnv('VERCEL');
-export const VERCEL_ENV = optionalEnv('VERCEL_ENV');
-export const VERCEL_URL = optionalEnv('VERCEL_URL');
-export const VERCEL_REGION = optionalEnv('VERCEL_REGION');
-export const VERCEL_GIT_COMMIT_SHA = optionalEnv('VERCEL_GIT_COMMIT_SHA');
-export const VERCEL_GIT_COMMIT_REF = optionalEnv('VERCEL_GIT_COMMIT_REF');
-export const VERCEL_GIT_COMMIT_MESSAGE = optionalEnv('VERCEL_GIT_COMMIT_MESSAGE');
-export const VERCEL_GIT_COMMIT_AUTHOR_LOGIN = optionalEnv('VERCEL_GIT_COMMIT_AUTHOR_LOGIN');
+export const ALLOW_UNVERIFIED_AGENT_ACTIONS =
+  process.env.ALLOW_UNVERIFIED_AGENT_ACTIONS === 'true';
+export const MOCK_CHAIN_TRANSFERS = process.env.MOCK_CHAIN_TRANSFERS === 'true';

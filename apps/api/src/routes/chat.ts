@@ -4,6 +4,7 @@ import { db, users, eq } from '@genie/db';
 import { readMemory } from '../kv';
 import type { UserContext } from '../agent/context';
 import { checkAndSettleDebts, type SettlementNotice } from '../agent/settlement';
+import type { ModelMessage } from 'ai';
 
 export const chatRoute = new Hono();
 
@@ -34,6 +35,44 @@ export function invalidateContextCache(userId: string): void {
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type IncomingChatMessage = {
+  role?: unknown;
+  content?: unknown;
+  parts?: unknown;
+};
+
+const MODEL_MESSAGE_ROLES = new Set(['system', 'user', 'assistant']);
+
+function extractTextFromParts(parts: unknown): string {
+  if (!Array.isArray(parts)) return '';
+
+  return parts
+    .map((part) => {
+      if (!part || typeof part !== 'object') return '';
+      const maybeTextPart = part as { type?: unknown; text?: unknown };
+      return maybeTextPart.type === 'text' && typeof maybeTextPart.text === 'string'
+        ? maybeTextPart.text
+        : '';
+    })
+    .join('');
+}
+
+function normalizeChatMessages(messages: IncomingChatMessage[]): ModelMessage[] {
+  return messages.flatMap((message) => {
+    const role = typeof message.role === 'string' ? message.role : '';
+    if (!MODEL_MESSAGE_ROLES.has(role)) return [];
+
+    const content =
+      typeof message.content === 'string'
+        ? message.content
+        : extractTextFromParts(message.parts);
+
+    if (content.trim().length === 0) return [];
+
+    return [{ role: role as 'system' | 'user' | 'assistant', content }];
+  });
+}
 
 /**
  * Resolves a raw identity token (wallet address or UUID) to an internal UUID.
@@ -137,7 +176,15 @@ chatRoute.post('/', async (c) => {
       );
     }
 
-    console.log(`[route:chat] received ${messages.length} messages, userId: ${userId ?? 'none'}`);
+    const modelMessages = normalizeChatMessages(messages);
+    if (modelMessages.length === 0) {
+      return c.json(
+        { error: 'messages array must contain at least one text message' },
+        400,
+      );
+    }
+
+    console.log(`[route:chat] received ${messages.length} messages (${modelMessages.length} model messages), userId: ${userId ?? 'none'}`);
 
     // Resolve wallet address → internal UUID (D-11: session.user.id is wallet address not UUID)
     const resolvedUserId = await resolveUserId(userId);
@@ -161,11 +208,9 @@ chatRoute.post('/', async (c) => {
       }
     }
 
-    const result = await runAgent({ messages, userId: resolvedUserId, userContext, settlementNotices });
+    const result = await runAgent({ messages: modelMessages, userId: resolvedUserId, userContext, settlementNotices });
 
-    // CRITICAL: Use toUIMessageStreamResponse() NOT pipeDataStreamToResponse()
-    // pipeDataStreamToResponse is Node.js-specific and crashes on Bun/Hono (Pitfall 3)
-    return result.toUIMessageStreamResponse();
+    return result.toTextStreamResponse();
   } catch (err) {
     console.error('[route:chat] error:', err);
     return c.json({ error: 'Internal server error', message: String(err) }, 500);
