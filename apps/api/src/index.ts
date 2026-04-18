@@ -9,6 +9,7 @@ import { usersRoute } from './routes/users';
 import { balanceRoute } from './routes/balance';
 import { sendRoute } from './routes/send';
 import { transactionsRoute } from './routes/transactions';
+import { versionRoute } from './routes/version';
 import { PORT } from './config/env';
 
 const app = new Hono();
@@ -22,6 +23,7 @@ app.route('/api/users', usersRoute);
 app.route('/api/balance', balanceRoute);
 app.route('/api/send', sendRoute);
 app.route('/api/transactions', transactionsRoute);
+app.route('/api/version', versionRoute);
 
 app.notFound((c) => {
   console.error(`[genie-api] 404 Not Found: ${c.req.method} ${c.req.url}`);

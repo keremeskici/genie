@@ -46,7 +46,7 @@ vi.mock('./chat', () => ({
 const { usersRoute } = await import('./users');
 
 const app = new Hono();
-app.route('/', usersRoute);
+app.route('/users', usersRoute);
 
 const WALLET_ADDRESS = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
 const WALLET_ADDRESS_LOWER = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';

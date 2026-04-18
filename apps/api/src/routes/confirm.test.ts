@@ -55,7 +55,7 @@ vi.mock('../chain/transfer', () => ({
 const { confirmRoute } = await import('./confirm');
 
 const app = new Hono();
-app.route('/', confirmRoute);
+app.route('/confirm', confirmRoute);
 
 const validPendingTx = {
   id: 'tx-uuid-001',

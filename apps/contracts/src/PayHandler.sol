@@ -11,6 +11,7 @@ contract PayHandler {
     address public owner;
 
     constructor(address _usdc) {
+        require(_usdc != address(0), "invalid usdc");
         usdc = _usdc;
         owner = msg.sender;
     }

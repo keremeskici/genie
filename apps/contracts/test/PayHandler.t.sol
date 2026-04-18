@@ -24,6 +24,11 @@ contract PayHandlerTest is Test {
         assertEq(handler.owner(), address(this));
     }
 
+    function test_ConstructorRevertsForZeroUsdc() public {
+        vm.expectRevert("invalid usdc");
+        new PayHandler(address(0));
+    }
+
     function test_ExecuteTransfersUsdcToRecipient() public {
         uint256 amount = 25 * 1e6; // 25 USDC
 

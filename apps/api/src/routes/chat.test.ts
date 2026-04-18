@@ -43,7 +43,7 @@ vi.mock('../agent/settlement', () => ({
 const { chatRoute, invalidateContextCache } = await import('./chat');
 
 const app = new Hono();
-app.route('/', chatRoute);
+app.route('/chat', chatRoute);
 
 const USER_ID = '00000000-0000-0000-0000-000000000001';
 const STUB_USER = {

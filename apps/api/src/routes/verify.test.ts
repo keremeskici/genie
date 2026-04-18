@@ -34,7 +34,7 @@ vi.mock('./chat', () => ({
 const { verifyRoute } = await import('./verify');
 
 const app = new Hono();
-app.route('/', verifyRoute);
+app.route('/verify', verifyRoute);
 
 const validBody = {
   userId: '00000000-0000-0000-0000-000000000001',

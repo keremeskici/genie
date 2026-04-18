@@ -26,6 +26,11 @@ contract GenieRouterTest is Test {
         assertEq(router.owner(), address(this));
     }
 
+    function test_ConstructorRevertsForZeroUsdc() public {
+        vm.expectRevert("invalid usdc");
+        new GenieRouter(address(0));
+    }
+
     function test_RouteTransfersUsdcFromSenderToHandler() public {
         uint256 amount = 10 * 1e6; // 10 USDC
 
