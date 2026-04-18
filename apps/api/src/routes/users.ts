@@ -10,6 +10,10 @@ const provisionSchema = z.object({
   displayName: z.string().nullable().optional(),
 });
 
+function needsOnboarding(displayName: string): boolean {
+  return displayName.startsWith('0x');
+}
+
 /**
  * POST /api/users/provision
  * Get-or-create a user by wallet address (idempotent — D-02).
@@ -34,9 +38,9 @@ usersRoute.post('/provision', async (c) => {
     .limit(1);
 
   if (existing) {
-    const needsOnboarding = existing.displayName.startsWith('0x');
-    console.log(`[route:users] provision — existing user ${existing.id}, needsOnboarding=${needsOnboarding}`);
-    return c.json({ userId: existing.id, needsOnboarding });
+    const onboardingRequired = needsOnboarding(existing.displayName);
+    console.log(`[route:users] provision — existing user ${existing.id}, needsOnboarding=${onboardingRequired}`);
+    return c.json({ userId: existing.id, needsOnboarding: onboardingRequired });
   }
 
   // Provision new user — use MiniKit username if available (D-07), else wallet-derived default
@@ -55,10 +59,9 @@ usersRoute.post('/provision', async (c) => {
     return c.json({ error: 'PROVISION_FAILED', message: 'Could not create user' }, 500);
   }
 
-  // New users always go through onboarding regardless of display name.
-  // localStorage flag on the client prevents it re-triggering after completion.
-  console.log(`[route:users] provision — new user ${newUser.id}, needsOnboarding=true`);
-  return c.json({ userId: newUser.id, needsOnboarding: true });
+  const onboardingRequired = needsOnboarding(newUser.displayName);
+  console.log(`[route:users] provision — new user ${newUser.id}, needsOnboarding=${onboardingRequired}`);
+  return c.json({ userId: newUser.id, needsOnboarding: onboardingRequired });
 });
 
 const patchProfileSchema = z.object({

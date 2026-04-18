@@ -57,6 +57,10 @@ vi.mock('../tools/list-contacts', () => ({
   createListContactsTool: vi.fn(() => ({ description: 'mock list_contacts tool' })),
 }));
 
+vi.mock('../tools/settle-crosschain-debt', () => ({
+  createSettleCrosschainDebtTool: vi.fn(() => ({ description: 'mock settle_crosschain_debt tool' })),
+}));
+
 import { runAgent } from './index';
 import { streamText, stepCountIs } from 'ai';
 import { classifyIntent, selectModel } from './classifier';

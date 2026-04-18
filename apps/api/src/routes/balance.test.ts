@@ -11,7 +11,7 @@ vi.mock('../chain/clients', () => ({
 const { balanceRoute } = await import('./balance');
 
 const app = new Hono();
-app.route('/', balanceRoute);
+app.route('/balance', balanceRoute);
 
 const VALID_WALLET = '0x1234567890123456789012345678901234567890';
 
