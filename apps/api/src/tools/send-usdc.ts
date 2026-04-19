@@ -1,11 +1,23 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { executeOnChainTransfer } from '../chain/transfer';
+import { GENIE_ROUTER_ADDRESS } from '../chain/clients';
 import { inferCategory } from './categorize';
 import { db, transactions, eq, and } from '@genie/db';
 import type { UserContext } from '../agent/context';
 
 const PENDING_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes (D-13)
+
+function isAllowanceError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('allowance') ||
+    lower.includes('erc20insufficientallowance') ||
+    lower.includes('insufficient allowance') ||
+    lower.includes('transfer amount exceeds allowance')
+  );
+}
 
 /**
  * send_usdc tool factory — orchestrates USDC send flow with verification gating
@@ -88,6 +100,16 @@ export function createSendUsdcTool(userId: string, userContext: UserContext) {
         }
       } catch (err) {
         console.error('[tool:send_usdc] error:', err);
+        if (isAllowanceError(err)) {
+          return {
+            type: 'approval_required',
+            amount: amountUsd,
+            token: 'USDC',
+            spender: GENIE_ROUTER_ADDRESS,
+            reason: 'USDC allowance is too low for Genie to complete this transfer.',
+          };
+        }
+
         return {
           error: 'TRANSFER_FAILED',
           message: `Transfer failed: ${err instanceof Error ? err.message : 'Unknown error'}`,

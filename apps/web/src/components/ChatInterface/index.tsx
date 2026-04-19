@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ContactList, parseContactList, type ContactData } from '../ContactCard';
 import { ConfirmCard, parseConfirmCard } from '../ConfirmCard';
+import { ApprovalCard, parseApprovalCard } from '../ApprovalCard';
 import { ThinkingIndicator } from '../ThinkingIndicator';
 
 export interface AiInsight {
@@ -384,8 +385,9 @@ function AiMessageBubble({
 
   const contactData = parseContactList(textContent);
   const confirmData = parseConfirmCard(textContent);
+  const approvalData = parseApprovalCard(textContent);
 
-  const markdownText = (contactData || confirmData)
+  const markdownText = (contactData || confirmData || approvalData)
     ? textContent.replace(/```json\s*\n[\s\S]*?\n```/g, '').trim()
     : textContent;
 
@@ -454,6 +456,7 @@ function AiMessageBubble({
           {confirmData && (
             <ConfirmCard data={confirmData} userId={userId} />
           )}
+          {approvalData && <ApprovalCard data={approvalData} />}
         </div>
       </div>
     </div>

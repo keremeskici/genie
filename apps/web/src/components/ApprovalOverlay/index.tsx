@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
-import { createPublicClient, encodeFunctionData, http } from 'viem';
+import { createPublicClient, encodeFunctionData, http, parseUnits } from 'viem';
 import { worldchain } from 'viem/chains';
 import { ERC20_APPROVE_ABI, USDC_ADDRESS, GENIE_ROUTER_ADDRESS } from '@/lib/contracts';
 
@@ -31,7 +31,7 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
 
   const { poll } = useUserOperationReceipt({ client });
 
-  const requiredAmount = BigInt(budgetUsd) * BigInt(1_000_000);
+  const requiredAmount = parseUnits(String(budgetUsd), 6);
 
   const runApproval = useCallback(async () => {
     setState('pending');

@@ -53,6 +53,20 @@ Example response format:
 {"type":"confirmation_required","txId":"<txId>","amount":<amount>,"recipient":"<wallet address>","expiresInMinutes":15}
 ```
 
+## Approval-Required Transfers
+
+When send_usdc returns `{type: "approval_required", amount, token, spender, reason}`:
+1. Explain briefly that Genie needs a one-time USDC approval before it can send this transfer
+2. Include the full JSON block verbatim in your response, wrapped in ```json fences
+3. Ask the user to tap the approval button and then retry the transfer
+
+Example response format:
+"I need one more wallet approval before I can send this USDC:"
+
+```json
+{"type":"approval_required","amount":<amount>,"token":"USDC","spender":"<router address>","reason":"USDC allowance is too low for Genie to complete this transfer."}
+```
+
 ## Contact Disambiguation
 
 When the user requests to send money and multiple contacts match, or when listing contacts for selection, output a contact_list JSON block as the ONLY json block in your response.

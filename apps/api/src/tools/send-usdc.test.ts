@@ -5,6 +5,10 @@ vi.mock('../chain/transfer', () => ({
   executeOnChainTransfer: vi.fn(),
 }));
 
+vi.mock('../chain/clients', () => ({
+  GENIE_ROUTER_ADDRESS: '0x24079Ecda5eEd48a052Bbf795A54b05233B17102',
+}));
+
 // Mock @genie/db
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
@@ -153,6 +157,25 @@ describe('createSendUsdcTool', () => {
     expect(result).toMatchObject({
       error: 'TRANSFER_FAILED',
       message: expect.stringContaining('Blockchain rejected tx'),
+    });
+  });
+
+  it('returns approval_required when the router needs USDC allowance', async () => {
+    mockExecuteOnChainTransfer.mockRejectedValue(
+      new Error('ContractFunctionExecutionError: ERC20InsufficientAllowance'),
+    );
+
+    const tool = createSendUsdcTool(BASE_USER_ID, BASE_USER_CONTEXT);
+    const result = await tool.execute(
+      { recipientAddress: RECIPIENT, amountUsd: 10 },
+      { messages: [], toolCallId: 'test' },
+    );
+
+    expect(result).toMatchObject({
+      type: 'approval_required',
+      amount: 10,
+      token: 'USDC',
+      spender: '0x24079Ecda5eEd48a052Bbf795A54b05233B17102',
     });
   });
 
