@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
-import { createPublicClient, encodeFunctionData, http, parseUnits } from 'viem';
+import { createPublicClient, encodeFunctionData, getAddress, http, parseUnits } from 'viem';
 import { worldchain } from 'viem/chains';
 import { ERC20_APPROVE_ABI, USDC_ADDRESS, GENIE_ROUTER_ADDRESS } from '@/lib/contracts';
 
@@ -15,6 +15,8 @@ interface ApprovalOverlayProps {
 }
 
 type ApprovalState = 'pending' | 'success' | 'error';
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function ApprovalOverlay({ budgetUsd, walletAddress, onSuccess, onClose }: ApprovalOverlayProps) {
   const [state, setState] = useState<ApprovalState>('pending');
@@ -50,6 +52,7 @@ export function ApprovalOverlay({ budgetUsd, walletAddress, onSuccess, onClose }
         transactions: [
           {
             to: USDC_ADDRESS,
+            value: '0x0',
             data: encodeFunctionData({
               abi: ERC20_APPROVE_ABI,
               functionName: 'approve',
@@ -63,25 +66,58 @@ export function ApprovalOverlay({ budgetUsd, walletAddress, onSuccess, onClose }
         throw new Error('MiniKit did not return a userOpHash — approval may not have been submitted');
       }
 
-      await poll(result.data.userOpHash);
+      console.log('[ApprovalOverlay] MiniKit approval submitted', {
+        userOpHash: result.data.userOpHash,
+        from: result.data.from,
+        timestamp: result.data.timestamp,
+      });
 
-      const allowance = await client.readContract({
+      const { transactionHash, receipt } = await poll(result.data.userOpHash);
+      const minedTx = await client.getTransaction({ hash: transactionHash });
+
+      console.log('[ApprovalOverlay] approval transaction mined', {
+        transactionHash,
+        status: receipt.status,
+        transactionFrom: minedTx.from,
+        transactionTo: minedTx.to,
+        expectedTo: USDC_ADDRESS,
+        inputPrefix: minedTx.input.slice(0, 10),
+      });
+
+      // Give RPC/indexed reads a short moment after the AA receipt before reading allowance.
+      await sleep(1500);
+
+      const approvalOwner = getAddress(minedTx.from);
+      const sessionOwner = getAddress(walletAddress);
+
+      const sessionAllowance = await client.readContract({
         address: USDC_ADDRESS,
         abi: ERC20_APPROVE_ABI,
         functionName: 'allowance',
-        args: [walletAddress, GENIE_ROUTER_ADDRESS],
+        args: [sessionOwner, GENIE_ROUTER_ADDRESS],
       });
+
+      const approvalOwnerAllowance = approvalOwner === sessionOwner
+        ? sessionAllowance
+        : await client.readContract({
+            address: USDC_ADDRESS,
+            abi: ERC20_APPROVE_ABI,
+            functionName: 'allowance',
+            args: [approvalOwner, GENIE_ROUTER_ADDRESS],
+          });
 
       console.log('[ApprovalOverlay] allowance after approval', {
-        owner: walletAddress,
+        sessionOwner,
+        approvalOwner,
         spender: GENIE_ROUTER_ADDRESS,
         expected: amount.toString(),
-        actual: allowance.toString(),
+        sessionAllowance: sessionAllowance.toString(),
+        approvalOwnerAllowance: approvalOwnerAllowance.toString(),
       });
 
-      if (allowance < amount) {
+      if (sessionAllowance < amount) {
         throw new Error(
-          `Approval confirmed, but allowance is still too low. Expected ${budgetUsd} USDC for router ${GENIE_ROUTER_ADDRESS}; actual raw allowance is ${allowance.toString()}.`,
+          `Approval confirmed, but allowance is still too low. Expected ${budgetUsd} USDC for router ${GENIE_ROUTER_ADDRESS}; session owner ${sessionOwner} allowance is ${sessionAllowance.toString()}, approval tx owner ${approvalOwner} allowance is ${approvalOwnerAllowance.toString()}.`,
         );
       }
 
