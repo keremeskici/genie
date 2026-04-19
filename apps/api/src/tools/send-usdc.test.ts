@@ -99,7 +99,7 @@ describe('createSendUsdcTool', () => {
       recipient: RECIPIENT,
     });
     expect(insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'confirmed' }),
+      expect.objectContaining({ status: 'confirmed', executedAt: expect.any(Date) }),
     );
   });
 

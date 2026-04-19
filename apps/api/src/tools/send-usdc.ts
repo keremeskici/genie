@@ -55,6 +55,7 @@ export function createSendUsdcTool(userId: string, userContext: UserContext) {
             amountUsd: amountUsd.toFixed(2),
             txHash: executeTxHash,
             status: 'confirmed',
+            executedAt: new Date(),
             category: inferCategory(description),  // D-01: AI-inferred at creation
             source: 'genie_send',                  // D-06
           });

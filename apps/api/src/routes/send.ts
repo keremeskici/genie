@@ -79,6 +79,7 @@ sendRoute.post('/', async (c) => {
           amountUsd: amount.toFixed(2),
           txHash: executeTxHash,
           status: 'confirmed',
+          executedAt: new Date(),
           source: 'genie_send',
           category: inferCategory(description),
         });
@@ -133,6 +134,7 @@ sendRoute.post('/', async (c) => {
         amountUsd: amount.toFixed(2),
         txHash: bridgeTxHash,
         status: 'confirmed',
+        executedAt: new Date(),
         source: 'genie_bridge',
         category: 'transfers',
       });

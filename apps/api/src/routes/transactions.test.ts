@@ -14,6 +14,7 @@ const MOCK_TRANSACTIONS = [
     category: 'transfers',
     source: 'genie_send',
     createdAt: new Date('2026-04-05T00:00:00Z'),
+    executedAt: new Date('2026-04-05T00:01:00Z'),
     expiresAt: null,
   },
   {
@@ -26,6 +27,7 @@ const MOCK_TRANSACTIONS = [
     category: 'transfers',
     source: 'genie_send',
     createdAt: new Date('2026-04-05T01:00:00Z'),
+    executedAt: new Date('2026-04-05T01:01:00Z'),
     expiresAt: null,
   },
 ];
@@ -76,12 +78,13 @@ describe('GET /transactions', () => {
     const req = new Request('http://localhost/?userId=user-123');
     const res = await app.fetch(req);
     expect(res.status).toBe(200);
-    const json = await res.json() as { transactions: Array<{ id: string; direction: string }> };
+    const json = await res.json() as { transactions: Array<{ id: string; direction: string; executedAt: string | null }> };
     expect(Array.isArray(json.transactions)).toBe(true);
     expect(json.transactions).toHaveLength(2);
     // tx-2 (received, 01:00) sorts before tx-1 (sent, 00:00) by createdAt desc
     expect(json.transactions[0].direction).toBe('received');
     expect(json.transactions[1].direction).toBe('sent');
+    expect(json.transactions[0].executedAt).toBeTruthy();
   });
 
   it('returns 400 MISSING_USER_ID when userId is not provided', async () => {

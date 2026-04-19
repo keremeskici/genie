@@ -80,6 +80,7 @@ transactionsRoute.get('/', async (c) => {
             category: 'transfers',
             source: 'onchain',
             createdAt: new Date(parseInt(tx.timeStamp, 10) * 1000) as unknown as Date,
+            executedAt: new Date(parseInt(tx.timeStamp, 10) * 1000) as unknown as Date,
             expiresAt: null,
             direction: isSent ? 'sent' as const : 'received' as const,
           });
