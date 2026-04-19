@@ -101,12 +101,15 @@ export function createSendUsdcTool(userId: string, userContext: UserContext) {
       } catch (err) {
         console.error('[tool:send_usdc] error:', err);
         if (isAllowanceError(err)) {
+          const approvalAmount = Math.max(amountUsd, userContext.autoApproveUsd || 0);
+
           return {
             type: 'approval_required',
             amount: amountUsd,
+            approvalAmount,
             token: 'USDC',
             spender: GENIE_ROUTER_ADDRESS,
-            reason: 'USDC allowance is too low for Genie to complete this transfer.',
+            reason: `USDC allowance is too low for Genie to complete this transfer. Approving ${approvalAmount} USDC covers future sends within your auto-approve limit.`,
           };
         }
 

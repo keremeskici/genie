@@ -6,6 +6,7 @@ import { ApprovalOverlay } from '../ApprovalOverlay';
 export interface ApprovalCardData {
   type: 'approval_required';
   amount: number;
+  approvalAmount?: number;
   token?: 'USDC';
   spender: string;
   reason?: string;
@@ -40,6 +41,7 @@ export function ApprovalCard({ data }: { data: ApprovalCardData }) {
   const [showOverlay, setShowOverlay] = useState(false);
   const [approved, setApproved] = useState(false);
   const token = data.token ?? 'USDC';
+  const approvalAmount = data.approvalAmount ?? data.amount;
 
   return (
     <div className="mt-3 bg-background border border-white/10 p-4 rounded-lg">
@@ -49,10 +51,10 @@ export function ApprovalCard({ data }: { data: ApprovalCardData }) {
       </div>
 
       <p className="text-2xl font-bold text-white">
-        ${data.amount} {token}
+        ${approvalAmount} {token}
       </p>
       <p className="text-sm text-white/60 mb-4">
-        Allow Genie router {truncateAddress(data.spender)} to spend this amount from your wallet.
+        Allow Genie router {truncateAddress(data.spender)} to spend up to this amount from your wallet.
       </p>
 
       {approved ? (
@@ -70,7 +72,7 @@ export function ApprovalCard({ data }: { data: ApprovalCardData }) {
 
       {showOverlay && (
         <ApprovalOverlay
-          budgetUsd={data.amount}
+          budgetUsd={approvalAmount}
           onSuccess={() => {
             setApproved(true);
             setShowOverlay(false);

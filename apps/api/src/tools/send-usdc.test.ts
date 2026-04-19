@@ -174,6 +174,7 @@ describe('createSendUsdcTool', () => {
     expect(result).toMatchObject({
       type: 'approval_required',
       amount: 10,
+      approvalAmount: 25,
       token: 'USDC',
       spender: '0x24079Ecda5eEd48a052Bbf795A54b05233B17102',
     });
