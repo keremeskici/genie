@@ -16,6 +16,8 @@ interface ApprovalOverlayProps {
 
 type ApprovalState = 'pending' | 'confirming' | 'success' | 'error';
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export function ApprovalOverlay({ budgetUsd, walletAddress, onSuccess, onClose }: ApprovalOverlayProps) {
   const [state, setState] = useState<ApprovalState>('pending');
   const [errorMsg, setErrorMsg] = useState('');
@@ -68,16 +70,22 @@ export function ApprovalOverlay({ budgetUsd, walletAddress, onSuccess, onClose }
         throw new Error('Could not verify approval because wallet address is unavailable.');
       }
 
-      const allowance = await client.readContract({
-        address: USDC_ADDRESS,
-        abi: erc20Abi,
-        functionName: 'allowance',
-        args: [walletAddress as `0x${string}`, GENIE_ROUTER_ADDRESS],
-      });
+      let allowance = BigInt(0);
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        allowance = await client.readContract({
+          address: USDC_ADDRESS,
+          abi: erc20Abi,
+          functionName: 'allowance',
+          args: [walletAddress as `0x${string}`, GENIE_ROUTER_ADDRESS],
+        });
 
-      if ((allowance as bigint) < requiredAmount) {
+        if (allowance >= requiredAmount) break;
+        await sleep(1000);
+      }
+
+      if (allowance < requiredAmount) {
         throw new Error(
-          `Approval confirmed, but allowance is still too low. Expected ${budgetUsd} USDC allowance for Genie router.`,
+          `Approval confirmed, but allowance is still too low. Expected ${budgetUsd} USDC for router ${GENIE_ROUTER_ADDRESS}; actual allowance is ${Number(allowance) / 1_000_000} USDC for wallet ${walletAddress} and token ${USDC_ADDRESS}.`,
         );
       }
 
