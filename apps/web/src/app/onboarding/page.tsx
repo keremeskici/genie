@@ -1,5 +1,6 @@
 'use client';
 
+import { getPublicApiUrl } from '@/lib/backend-url';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -11,8 +12,6 @@ const GOALS = [
   'Lending',
   'Other',
 ];
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export default function Onboarding() {
   const router = useRouter();
@@ -47,7 +46,7 @@ export default function Onboarding() {
 
     try {
       if (userId && budgetValue && budgetValue !== '0') {
-        const res = await fetch(`${API_URL}/api/users/profile`, {
+        const res = await fetch(getPublicApiUrl('/api/users/profile'), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId, autoApproveUsd: Number(budgetValue) }),

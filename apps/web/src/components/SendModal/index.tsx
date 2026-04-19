@@ -1,6 +1,7 @@
 'use client';
 
 import { ConfirmCard, type ConfirmCardData } from '@/components/ConfirmCard';
+import { getPublicApiUrl } from '@/lib/backend-url';
 import {
   executeMiniKitTransactions,
   extractMiniKitTransactionHash,
@@ -52,7 +53,7 @@ export function SendModal({ onClose, userId, refetchBalance }: SendModalProps) {
   };
 
   const submitSend = async () => {
-    return fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/send`, {
+    return fetch(getPublicApiUrl('/api/send'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -85,7 +86,7 @@ export function SendModal({ onClose, userId, refetchBalance }: SendModalProps) {
         const receipt = await poll(userOpHash);
         const finalHash = extractMiniKitTransactionHash(receipt) ?? userOpHash;
 
-        const finalizeRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/confirm`, {
+        const finalizeRes = await fetch(getPublicApiUrl('/api/confirm'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ txId: json.txId, userId, txHash: finalHash }),

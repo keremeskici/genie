@@ -2,6 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { TextStreamChatTransport } from 'ai';
+import { getPublicApiBaseUrl, getPublicApiUrl } from '@/lib/backend-url';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
 import { useSession } from 'next-auth/react';
@@ -26,7 +27,7 @@ export interface AiInsight {
   value: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+const API_URL = getPublicApiBaseUrl();
 const SHOW_CHAT_DEBUG = process.env.NEXT_PUBLIC_SHOW_CHAT_DEBUG === 'true';
 
 // Height of the bottom nav bar — input floats above it when keyboard is closed
@@ -237,7 +238,7 @@ export const ChatInterface = () => {
         const receipt = await poll(userOpHash);
         const finalHash = extractMiniKitTransactionHash(receipt) ?? userOpHash;
 
-        const finalizeRes = await fetch(`${API_URL}/api/confirm`, {
+        const finalizeRes = await fetch(getPublicApiUrl('/api/confirm'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -246,6 +247,7 @@ export const ChatInterface = () => {
             txHash: finalHash,
           }),
         });
+        
         const finalizeJson = await finalizeRes.json();
 
         if (!finalizeRes.ok && finalizeRes.status !== 409) {

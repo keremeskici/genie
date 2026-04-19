@@ -1,6 +1,12 @@
 # Local World App Testing
 
-This guide describes how to run the frontend, backend, and World Mini App flow locally before deploying to Railway or Vercel.
+This guide describes how to run the frontend, backend, and World Mini App flow locally while preserving an easy switch back from Railway deployment mode.
+
+For the Railway production setup, see:
+
+```txt
+docs/railway-deployment.md
+```
 
 ## Why Local World App Testing Is Tricky
 

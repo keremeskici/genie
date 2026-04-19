@@ -1,5 +1,6 @@
 'use client';
 
+import { getPublicApiBaseUrl, getPublicApiUrl } from '@/lib/backend-url';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { getSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
@@ -11,7 +12,7 @@ type ProbeResult = {
   error?: string;
 };
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
+const apiBase = getPublicApiBaseUrl();
 
 export default function DebugPage() {
   const [origin, setOrigin] = useState('');
@@ -30,7 +31,7 @@ export default function DebugPage() {
 
   async function probe(path: string, init?: RequestInit): Promise<ProbeResult> {
     try {
-      const res = await fetch(`${apiBase}${path}`, init);
+      const res = await fetch(getPublicApiUrl(path), init);
       return {
         status: res.status,
         ok: res.ok,

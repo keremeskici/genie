@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+import { getPublicApiUrl } from '@/lib/backend-url';
 
 export function useBalance(walletAddress: string) {
   const [balance, setBalance] = useState<string | null>(null);
@@ -12,7 +11,7 @@ export function useBalance(walletAddress: string) {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch(`${API_URL}/api/balance?wallet=${walletAddress}`);
+      const res = await fetch(getPublicApiUrl(`/api/balance?wallet=${walletAddress}`));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as { balance: string; currency: string };
       const parsed = parseFloat(data.balance);

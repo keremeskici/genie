@@ -1,4 +1,5 @@
 'use client';
+import { getPublicApiUrl } from '@/lib/backend-url';
 import { useEffect, useState } from 'react';
 import {
   executeMiniKitTransactions,
@@ -57,7 +58,7 @@ export const ConfirmCard: React.FC<{ data: ConfirmCardData; userId: string }> = 
   const handleConfirm = async () => {
     setState('loading');
     try {
-      const prepareRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/confirm`, {
+      const prepareRes = await fetch(getPublicApiUrl('/api/confirm'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ txId: data.txId, userId }),
@@ -87,7 +88,7 @@ export const ConfirmCard: React.FC<{ data: ConfirmCardData; userId: string }> = 
       const receipt = await poll(userOpHash);
       const finalHash = extractMiniKitTransactionHash(receipt) ?? userOpHash;
 
-      const finalizeRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/confirm`, {
+      const finalizeRes = await fetch(getPublicApiUrl('/api/confirm'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ txId: data.txId, userId, txHash: finalHash }),

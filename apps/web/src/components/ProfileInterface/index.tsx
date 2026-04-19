@@ -1,10 +1,9 @@
 'use client';
 
+import { getPublicApiUrl } from '@/lib/backend-url';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Verify } from '../Verify';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 // TODO: replace with real data from API
 const MOCK_OLD_TRANSACTIONS = [
@@ -30,7 +29,7 @@ export const ProfileInterface = () => {
       return;
     }
 
-    const res = await fetch(`${API_URL}/api/users/profile`, {
+    const res = await fetch(getPublicApiUrl('/api/users/profile'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, autoApproveUsd: val }),

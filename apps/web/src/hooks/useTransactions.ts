@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+import { getPublicApiUrl } from '@/lib/backend-url';
 
 export interface Transaction {
   id: string;
@@ -26,7 +25,7 @@ export function useTransactions(userId: string) {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch(`${API_URL}/api/transactions?userId=${userId}`);
+      const res = await fetch(getPublicApiUrl(`/api/transactions?userId=${userId}`));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as { transactions: Transaction[] };
       setTransactions(data.transactions ?? []);

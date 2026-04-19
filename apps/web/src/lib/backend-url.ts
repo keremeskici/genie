@@ -5,3 +5,16 @@ export function getBackendApiUrl(): string | null {
   const trimmed = raw.replace(/\/$/, '');
   return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
 }
+
+export function getPublicApiBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_API_URL;
+  if (!raw) return '';
+
+  const trimmed = raw.replace(/\/$/, '');
+  return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+}
+
+export function getPublicApiUrl(path: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${getPublicApiBaseUrl()}${normalizedPath}`;
+}
