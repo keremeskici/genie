@@ -190,7 +190,11 @@ describe('POST /confirm', () => {
       validPendingTx.recipientWallet,
       50.0,
     );
-    expect(mockDbUpdateSet).toHaveBeenCalledWith({ status: 'confirmed', txHash: '0xexecuteHash' });
+    expect(mockDbUpdateSet).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'confirmed',
+      txHash: '0xexecuteHash',
+      executedAt: expect.any(Date),
+    }));
   });
 
   it('Test 8: returns 500 and marks tx as failed when executeOnChainTransfer throws', async () => {

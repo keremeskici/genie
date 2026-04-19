@@ -62,13 +62,14 @@ describe('contacts table', () => {
 });
 
 describe('transactions table', () => {
-  it('has correct columns: id, sender_user_id (FK->users, not null), recipient_wallet (not null), amount_usd (not null), tx_hash (nullable), category (nullable), source (not null), created_at (not null)', async () => {
+  it('has correct columns: id, sender_user_id (FK->users, not null), recipient_wallet (not null), amount_usd (not null), tx_hash (nullable), executed_at (nullable), category (nullable), source (not null), created_at (not null)', async () => {
     const cols = Object.keys(transactions);
     expect(cols).toContain('id');
     expect(cols).toContain('senderUserId');
     expect(cols).toContain('recipientWallet');
     expect(cols).toContain('amountUsd');
     expect(cols).toContain('txHash');
+    expect(cols).toContain('executedAt');
     expect(cols).toContain('category');
     expect(cols).toContain('source');
     expect(cols).toContain('createdAt');

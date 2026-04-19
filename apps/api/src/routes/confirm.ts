@@ -66,7 +66,7 @@ confirmRoute.post('/', async (c) => {
 
       // Update transaction to confirmed
       await db.update(transactions)
-        .set({ status: 'confirmed', txHash: executeTxHash })
+        .set({ status: 'confirmed', txHash: executeTxHash, executedAt: new Date() })
         .where(eq(transactions.id, txId));
 
       return c.json({

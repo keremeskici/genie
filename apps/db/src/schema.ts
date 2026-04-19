@@ -27,6 +27,7 @@ export const transactions = pgTable('transactions', {
   txHash: text('tx_hash'),
   status: text('status').notNull().default('confirmed'),
   expiresAt: timestamp('expires_at'),
+  executedAt: timestamp('executed_at'),
   category: text('category'),                              // SPND-01, D-05: nullable
   source: text('source').notNull().default('genie_send'),  // D-06
   createdAt: timestamp('created_at').notNull().defaultNow(),

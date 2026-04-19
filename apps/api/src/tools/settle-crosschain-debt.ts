@@ -65,6 +65,7 @@ export function createSettleCrosschainDebtTool(userId: string, userContext: User
           amountUsd: debt.amountUsd,
           txHash: bridgeTxHash, // Use bridge hash for tracking
           status: 'confirmed',
+          executedAt: new Date(),
           source: 'genie_bridge',
           category: 'transfers',
         });
