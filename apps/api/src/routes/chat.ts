@@ -167,7 +167,7 @@ async function fetchUserContext(userId: string): Promise<UserContext> {
 chatRoute.post('/', async (c) => {
   try {
     const body = await c.req.json();
-    const { messages, userId } = body;
+    const { messages, userId, walletAddress } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return c.json(
@@ -184,12 +184,20 @@ chatRoute.post('/', async (c) => {
       );
     }
 
-    console.log(`[route:chat] received ${messages.length} messages (${modelMessages.length} model messages), userId: ${userId ?? 'none'}`);
+    console.log(
+      `[route:chat] received ${messages.length} messages (${modelMessages.length} model messages), userId: ${userId ?? 'none'}, walletAddress: ${walletAddress ?? 'none'}`,
+    );
 
-    // Resolve wallet address → internal UUID (D-11: session.user.id is wallet address not UUID)
-    const resolvedUserId = await resolveUserId(userId);
-    if (userId && !resolvedUserId) {
-      console.warn(`[route:chat] could not resolve userId: ${userId}`);
+    // Prefer wallet address because old NextAuth sessions can contain stale UUIDs.
+    const identityToken =
+      typeof walletAddress === 'string' && walletAddress.length > 0
+        ? walletAddress
+        : userId;
+
+    // Resolve wallet address → internal UUID (D-11: session.user.id may be wallet or UUID)
+    const resolvedUserId = await resolveUserId(identityToken);
+    if (identityToken && !resolvedUserId) {
+      console.warn(`[route:chat] could not resolve user identity: ${identityToken}`);
     }
 
     // Fetch user context if resolvedUserId available (D-10), otherwise use stub

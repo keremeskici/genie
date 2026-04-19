@@ -153,6 +153,18 @@ describe('fetchUserContext — cache miss loads from DB + KV', () => {
     expect(callArgs.userContext.displayName).toBe('Alice');
     expect(callArgs.userContext.autoApproveUsd).toBe(50);
   });
+
+  it('prefers walletAddress over a stale session UUID when resolving user context', async () => {
+    await postChat({
+      messages: [{ role: 'user', content: 'hello' }],
+      userId: '11111111-1111-1111-1111-111111111111',
+      walletAddress: '0xabc',
+    });
+
+    const callArgs = mockRunAgent.mock.calls[0][0];
+    expect(callArgs.userId).toBe(USER_ID);
+    expect(callArgs.userContext.walletAddress).toBe('0xABC');
+  });
 });
 
 describe('fetchUserContext — stub fallback when user not found in DB', () => {

@@ -172,7 +172,15 @@ export const ChatInterface = () => {
     }
 
     setLastSendDebug(`sending "${text}" to ${API_URL || 'same-origin'}/api/chat`);
-    sendMessage({ text }, { body: { userId: session?.user?.id } });
+    sendMessage(
+      { text },
+      {
+        body: {
+          userId: session?.user?.id,
+          walletAddress: session?.user?.walletAddress,
+        },
+      },
+    );
 
     if (MiniKit.isInstalled()) {
       MiniKit.sendHapticFeedback({ hapticsType: 'impact', style: 'medium' }).catch((err) => {
@@ -221,7 +229,12 @@ export const ChatInterface = () => {
                   if (status !== 'ready') return;
                   sendMessage(
                     { text: `Use contact ${contact.name} at wallet ${contact.walletAddress}` },
-                    { body: { userId: session?.user?.id } },
+                    {
+                      body: {
+                        userId: session?.user?.id,
+                        walletAddress: session?.user?.walletAddress,
+                      },
+                    },
                   );
                 }}
               />
