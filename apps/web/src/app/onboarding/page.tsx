@@ -134,6 +134,7 @@ export default function Onboarding() {
       {showApproval && (
         <ApprovalOverlay
           budgetUsd={Number(budget)}
+          walletAddress={session?.user?.walletAddress}
           onSuccess={() => finish(budget)}
           onClose={() => setShowApproval(false)}
         />

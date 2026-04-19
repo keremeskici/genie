@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { ApprovalOverlay } from '../ApprovalOverlay';
 
 export interface ApprovalCardData {
@@ -38,6 +39,7 @@ function truncateAddress(addr: string): string {
 }
 
 export function ApprovalCard({ data }: { data: ApprovalCardData }) {
+  const { data: session } = useSession();
   const [showOverlay, setShowOverlay] = useState(false);
   const [approved, setApproved] = useState(false);
   const token = data.token ?? 'USDC';
@@ -73,6 +75,7 @@ export function ApprovalCard({ data }: { data: ApprovalCardData }) {
       {showOverlay && (
         <ApprovalOverlay
           budgetUsd={approvalAmount}
+          walletAddress={session?.user?.walletAddress}
           onSuccess={() => {
             setApproved(true);
             setShowOverlay(false);

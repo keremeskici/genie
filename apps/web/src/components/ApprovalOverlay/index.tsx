@@ -3,19 +3,20 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
-import { createPublicClient, encodeFunctionData, http, parseUnits } from 'viem';
+import { createPublicClient, encodeFunctionData, erc20Abi, http, parseUnits } from 'viem';
 import { worldchain } from 'viem/chains';
 import { ERC20_APPROVE_ABI, USDC_ADDRESS, GENIE_ROUTER_ADDRESS } from '@/lib/contracts';
 
 interface ApprovalOverlayProps {
   budgetUsd: number;
+  walletAddress?: string;
   onSuccess: () => void;
   onClose: () => void;
 }
 
 type ApprovalState = 'pending' | 'confirming' | 'success' | 'error';
 
-export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverlayProps) {
+export function ApprovalOverlay({ budgetUsd, walletAddress, onSuccess, onClose }: ApprovalOverlayProps) {
   const [state, setState] = useState<ApprovalState>('pending');
   const [errorMsg, setErrorMsg] = useState('');
   const hasRun = useRef(false);
@@ -63,6 +64,23 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
         throw new Error('Approval transaction reverted on-chain.');
       }
 
+      if (!walletAddress) {
+        throw new Error('Could not verify approval because wallet address is unavailable.');
+      }
+
+      const allowance = await client.readContract({
+        address: USDC_ADDRESS,
+        abi: erc20Abi,
+        functionName: 'allowance',
+        args: [walletAddress as `0x${string}`, GENIE_ROUTER_ADDRESS],
+      });
+
+      if ((allowance as bigint) < requiredAmount) {
+        throw new Error(
+          `Approval confirmed, but allowance is still too low. Expected ${budgetUsd} USDC allowance for Genie router.`,
+        );
+      }
+
       setState('success');
       setTimeout(() => {
         onSuccess();
@@ -72,7 +90,7 @@ export function ApprovalOverlay({ budgetUsd, onSuccess, onClose }: ApprovalOverl
       setErrorMsg(err instanceof Error ? err.message : 'Transaction failed or was rejected');
       setState('error');
     }
-  }, [poll, onSuccess, requiredAmount]);
+  }, [budgetUsd, client, poll, onSuccess, requiredAmount, walletAddress]);
 
   useEffect(() => {
     if (hasRun.current) return;
