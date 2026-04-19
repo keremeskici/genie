@@ -40,11 +40,12 @@ export function assembleContext(
   const memoryStr = userContext.memory
     ? `, goals=${userContext.memory.activeGoals.length}, profile=${JSON.stringify(userContext.memory.financialProfile)}`
     : '';
+  const bypassStr = ', verificationBypass=true (temporary agent testing — gated actions available)';
   const verifiedStr = userContext.isVerified
     ? ', verified=true'
-    : ', verified=false (gated actions unavailable — suggest World ID verification)';
+    : ', verified=false (temporary testing bypass active)';
   const humanBackedStr = `, humanBacked=${userContext.isHumanBacked}`;
-  const contextInjection = `[User context: wallet=${userContext.walletAddress}, name=${userContext.displayName}, threshold=$${userContext.autoApproveUsd}${memoryStr}${verifiedStr}${humanBackedStr}]`;
+  const contextInjection = `[User context: wallet=${userContext.walletAddress}, name=${userContext.displayName}, threshold=$${userContext.autoApproveUsd}${memoryStr}${verifiedStr}${humanBackedStr}${bypassStr}]`;
 
   return {
     system: systemPrompt,

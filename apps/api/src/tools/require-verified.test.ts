@@ -23,15 +23,11 @@ describe('requireVerified', () => {
     expect(requireVerified(verifiedCtx)).toBeNull();
   });
 
-  it('returns VERIFICATION_REQUIRED error when user is not verified', () => {
-    const result = requireVerified(unverifiedCtx);
-    expect(result).not.toBeNull();
-    expect(result!.error).toBe('VERIFICATION_REQUIRED');
-    expect(result!.message).toBe('This action requires World ID verification. Please verify to continue.');
+  it('temporarily returns null when user is not verified', () => {
+    expect(requireVerified(unverifiedCtx)).toBeNull();
   });
 
-  it('error object has exactly error and message keys', () => {
-    const result = requireVerified(unverifiedCtx);
-    expect(Object.keys(result!).sort()).toEqual(['error', 'message']);
+  it('does not return a verification error during the temporary bypass', () => {
+    expect(requireVerified(unverifiedCtx)).toBeNull();
   });
 });

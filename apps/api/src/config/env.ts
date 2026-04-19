@@ -51,3 +51,6 @@ export const USDC_ADDRESS_MAINNET =
 export const PORT = parseInt(process.env.PORT ?? '3001', 10);
 export const MAX_OUTPUT_TOKENS = parseInt(process.env.MAX_OUTPUT_TOKENS ?? '2048', 10);
 export const WINDOW_LIMIT = parseInt(process.env.WINDOW_LIMIT ?? '40', 10);
+export const ALLOW_UNVERIFIED_AGENT_ACTIONS =
+  process.env.ALLOW_UNVERIFIED_AGENT_ACTIONS === 'true';
+export const MOCK_CHAIN_TRANSFERS = process.env.MOCK_CHAIN_TRANSFERS === 'true';

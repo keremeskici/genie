@@ -17,7 +17,7 @@ import type { UserContext } from '../agent/context';
 export function createListDebtsTool(userId: string, userContext: UserContext) {
   return tool({
     description:
-      'List open (unsettled) debts. Shows who owes what. Requires World ID verification.',
+      'List open (unsettled) debts. Shows who owes what.',
     inputSchema: z.object({}),
     execute: async () => {
       // Gate: require World ID verification

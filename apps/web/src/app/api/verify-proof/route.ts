@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import { getBackendApiUrl } from '@/lib/backend-url';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface IRequestPayload {
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   if (verifyRes.success) {
     // Persist verification to Genie backend (Phase 3 endpoint)
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
+    const apiUrl = getBackendApiUrl();
     if (apiUrl) {
       try {
         // Get userId from server-side session via NextAuth v5 auth()

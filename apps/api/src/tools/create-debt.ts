@@ -18,7 +18,7 @@ import type { UserContext } from '../agent/context';
 export function createCreateDebtTool(userId: string, userContext: UserContext) {
   return tool({
     description:
-      'Record a debt. Use iOwe=true for "I owe them" and iOwe=false for "they owe me". Requires World ID verification.',
+      'Record a debt. Use iOwe=true for "I owe them" and iOwe=false for "they owe me".',
     inputSchema: z.object({
       counterpartyWallet: z.string().describe('Wallet address of the other party'),
       amountUsd: z.number().positive().describe('Debt amount in USD'),

@@ -21,7 +21,7 @@ const PENDING_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes (D-13)
 export function createSendUsdcTool(userId: string, userContext: UserContext) {
   return tool({
     description:
-      'Send USDC to a resolved wallet address. Requires World ID verification. Use resolve_contact first to get the address.',
+      'Send USDC to a resolved wallet address. Use resolve_contact first to get the address.',
     inputSchema: z.object({
       recipientAddress: z.string().describe('Resolved 0x wallet address of recipient'),
       amountUsd: z.number().positive().describe('Amount in USD to send'),

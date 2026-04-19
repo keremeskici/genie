@@ -10,6 +10,30 @@ const provisionSchema = z.object({
   displayName: z.string().nullable().optional(),
 });
 
+function needsOnboarding(displayName: string): boolean {
+  return displayName.startsWith('0x');
+}
+
+function errorDetails(err: unknown): Record<string, unknown> {
+  if (!(err instanceof Error)) {
+    return { message: String(err) };
+  }
+
+  const cause = err.cause;
+  return {
+    name: err.name,
+    message: err.message,
+    cause: cause instanceof Error
+      ? {
+          name: cause.name,
+          message: cause.message,
+          code: 'code' in cause ? cause.code : undefined,
+          detail: 'detail' in cause ? cause.detail : undefined,
+        }
+      : cause,
+  };
+}
+
 /**
  * POST /api/users/provision
  * Get-or-create a user by wallet address (idempotent — D-02).
@@ -17,48 +41,58 @@ const provisionSchema = z.object({
  * needsOnboarding is true when the user has no proper display name (only a wallet-derived default).
  */
 usersRoute.post('/provision', async (c) => {
-  const body = await c.req.json();
-  const parsed = provisionSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ error: 'INVALID_INPUT', message: 'walletAddress is required' }, 400);
+  try {
+    const body = await c.req.json();
+    const parsed = provisionSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: 'INVALID_INPUT', message: 'walletAddress is required' }, 400);
+    }
+
+    const { walletAddress: rawAddress, displayName } = parsed.data;
+    const walletAddress = rawAddress.toLowerCase();
+
+    console.log(`[route:users] provision request for wallet ${walletAddress}`);
+
+    // Check for existing user
+    const [existing] = await db
+      .select({ id: users.id, displayName: users.displayName })
+      .from(users)
+      .where(eq(users.walletAddress, walletAddress))
+      .limit(1);
+
+    if (existing) {
+      const onboardingRequired = needsOnboarding(existing.displayName);
+      console.log(`[route:users] provision — existing user ${existing.id}, needsOnboarding=${onboardingRequired}`);
+      return c.json({ userId: existing.id, needsOnboarding: onboardingRequired });
+    }
+
+    // Provision new user — use MiniKit username if available (D-07), else wallet-derived default
+    const resolvedDisplayName = displayName ?? walletAddress.slice(0, 10);
+
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        walletAddress,
+        displayName: resolvedDisplayName,
+        autoApproveUsd: '25',
+      })
+      .returning({ id: users.id, displayName: users.displayName });
+
+    if (!newUser) {
+      return c.json({ error: 'PROVISION_FAILED', message: 'Could not create user' }, 500);
+    }
+
+    const onboardingRequired = needsOnboarding(newUser.displayName);
+    console.log(`[route:users] provision — new user ${newUser.id}, needsOnboarding=${onboardingRequired}`);
+    return c.json({ userId: newUser.id, needsOnboarding: onboardingRequired });
+  } catch (err) {
+    console.error('[route:users] provision error:', err);
+    return c.json({
+      error: 'PROVISION_FAILED',
+      message: err instanceof Error ? err.message : String(err),
+      details: errorDetails(err),
+    }, 500);
   }
-
-  const { walletAddress: rawAddress, displayName } = parsed.data;
-  const walletAddress = rawAddress.toLowerCase();
-
-  // Check for existing user
-  const [existing] = await db
-    .select({ id: users.id, displayName: users.displayName })
-    .from(users)
-    .where(eq(users.walletAddress, walletAddress))
-    .limit(1);
-
-  if (existing) {
-    const needsOnboarding = existing.displayName.startsWith('0x');
-    console.log(`[route:users] provision — existing user ${existing.id}, needsOnboarding=${needsOnboarding}`);
-    return c.json({ userId: existing.id, needsOnboarding });
-  }
-
-  // Provision new user — use MiniKit username if available (D-07), else wallet-derived default
-  const resolvedDisplayName = displayName ?? walletAddress.slice(0, 10);
-
-  const [newUser] = await db
-    .insert(users)
-    .values({
-      walletAddress,
-      displayName: resolvedDisplayName,
-      autoApproveUsd: '25',
-    })
-    .returning({ id: users.id, displayName: users.displayName });
-
-  if (!newUser) {
-    return c.json({ error: 'PROVISION_FAILED', message: 'Could not create user' }, 500);
-  }
-
-  // New users always go through onboarding regardless of display name.
-  // localStorage flag on the client prevents it re-triggering after completion.
-  console.log(`[route:users] provision — new user ${newUser.id}, needsOnboarding=true`);
-  return c.json({ userId: newUser.id, needsOnboarding: true });
 });
 
 const patchProfileSchema = z.object({

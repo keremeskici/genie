@@ -28,7 +28,7 @@ vi.mock('../kv', () => ({
 }));
 
 const mockRunAgent = vi.fn().mockReturnValue({
-  toUIMessageStreamResponse: () => new Response('ok'),
+  toTextStreamResponse: () => new Response('ok'),
 });
 vi.mock('../agent/index', () => ({
   runAgent: (...args: unknown[]) => mockRunAgent(...args),
@@ -57,7 +57,7 @@ const STUB_USER = {
 
 async function postChat(body: object) {
   return app.fetch(
-    new Request('http://localhost/chat', {
+    new Request('http://localhost/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -70,7 +70,7 @@ beforeEach(() => {
   // Reset to default successful DB result
   mockDbSelect.mockResolvedValue([STUB_USER]);
   mockReadMemory.mockResolvedValue(null);
-  mockRunAgent.mockReturnValue({ toUIMessageStreamResponse: () => new Response('ok') });
+  mockRunAgent.mockReturnValue({ toTextStreamResponse: () => new Response('ok') });
   mockCheckAndSettleDebts.mockResolvedValue([]);
   // Clear the context cache before each test so tests are independent
   invalidateContextCache(USER_ID);
@@ -87,6 +87,51 @@ describe('POST /chat — input validation', () => {
   it('returns 400 when messages array is empty', async () => {
     const res = await postChat({ messages: [], userId: USER_ID });
     expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when messages contain no text content', async () => {
+    const res = await postChat({
+      messages: [{ id: 'm1', role: 'user', parts: [{ type: 'step-start' }] }],
+      userId: USER_ID,
+    });
+
+    expect(res.status).toBe(400);
+    const json = await res.json() as { error: string };
+    expect(json.error).toContain('text message');
+  });
+});
+
+describe('POST /chat — message normalization', () => {
+  it('passes legacy model messages through to runAgent', async () => {
+    await postChat({ messages: [{ role: 'user', content: 'hello' }], userId: USER_ID });
+
+    const callArgs = mockRunAgent.mock.calls[0][0];
+    expect(callArgs.messages).toEqual([{ role: 'user', content: 'hello' }]);
+  });
+
+  it('converts AI SDK UI message parts to model message content', async () => {
+    await postChat({
+      messages: [
+        { id: 'm1', role: 'user', parts: [{ type: 'text', text: 'Hi' }] },
+      ],
+      userId: USER_ID,
+    });
+
+    const callArgs = mockRunAgent.mock.calls[0][0];
+    expect(callArgs.messages).toEqual([{ role: 'user', content: 'Hi' }]);
+  });
+
+  it('drops empty UI messages so they do not become blank current prompts', async () => {
+    await postChat({
+      messages: [
+        { id: 'm1', role: 'user', parts: [{ type: 'text', text: 'Hi' }] },
+        { role: 'user', content: '' },
+      ],
+      userId: USER_ID,
+    });
+
+    const callArgs = mockRunAgent.mock.calls[0][0];
+    expect(callArgs.messages).toEqual([{ role: 'user', content: 'Hi' }]);
   });
 });
 
@@ -107,6 +152,18 @@ describe('fetchUserContext — cache miss loads from DB + KV', () => {
     expect(callArgs.userContext.walletAddress).toBe('0xABC');
     expect(callArgs.userContext.displayName).toBe('Alice');
     expect(callArgs.userContext.autoApproveUsd).toBe(50);
+  });
+
+  it('prefers walletAddress over a stale session UUID when resolving user context', async () => {
+    await postChat({
+      messages: [{ role: 'user', content: 'hello' }],
+      userId: '11111111-1111-1111-1111-111111111111',
+      walletAddress: '0xabc',
+    });
+
+    const callArgs = mockRunAgent.mock.calls[0][0];
+    expect(callArgs.userId).toBe(USER_ID);
+    expect(callArgs.userContext.walletAddress).toBe('0xABC');
   });
 });
 

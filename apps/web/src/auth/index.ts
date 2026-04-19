@@ -1,4 +1,5 @@
 import { hashNonce } from '@/auth/wallet/client-helpers';
+import { getBackendApiUrl } from '@/lib/backend-url';
 import { MiniKit } from '@worldcoin/minikit-js';
 import type { MiniAppWalletAuthSuccessPayload } from '@worldcoin/minikit-js/commands';
 import { verifySiweMessage } from '@worldcoin/minikit-js/siwe';
@@ -71,15 +72,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const userInfo = await MiniKit.getUserInfo(finalPayload.address);
         const walletAddress = result.siweMessageData.address;
 
-        let apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        const apiUrl = getBackendApiUrl();
         if (!apiUrl) {
-          console.error('[auth] NEXT_PUBLIC_API_URL is missing in environment');
+          console.error('[auth] BACKEND_API_URL or NEXT_PUBLIC_API_URL is missing in environment');
           return null;
-        }
-
-        // Defensive: Ensure URL has a protocol
-        if (!apiUrl.startsWith('http')) {
-          apiUrl = `https://${apiUrl}`;
         }
 
         console.log(`[auth] provisioning user at: ${apiUrl}/api/users/provision`);

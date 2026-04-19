@@ -1,6 +1,6 @@
 'use client';
 import { IDKit, orbLegacy, type RpContext } from '@worldcoin/idkit';
-import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
+import { LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
 import { useState } from 'react';
 
 /**
@@ -94,15 +94,14 @@ export const Verify = ({ onVerified }: VerifyProps = {}) => {
         state={buttonState}
         className="w-full"
       >
-        <Button
+        <button
+          type="button"
           onClick={onClickVerify}
           disabled={buttonState === 'pending'}
-          size="lg"
-          variant="primary"
-          className="w-full !bg-white !text-black"
+          className="w-full bg-white text-black font-headline font-extrabold text-sm uppercase tracking-widest py-4 px-5 active:scale-95 transition-transform duration-150 disabled:opacity-70 disabled:active:scale-100 rounded-lg"
         >
           Verify with World ID
-        </Button>
+        </button>
       </LiveFeedback>
     </div>
   );

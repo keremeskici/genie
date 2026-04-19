@@ -1,6 +1,7 @@
 import { parseUnits } from 'viem';
 import { getWalletClient, relayerAccount, chain, GENIE_ROUTER_ADDRESS, PAY_HANDLER_ADDRESS } from './clients';
 import { GenieRouterAbi, PayHandlerAbi } from '../contracts/abis';
+import { MOCK_CHAIN_TRANSFERS } from '../config/env';
 
 /**
  * executeOnChainTransfer — Two-step on-chain transfer orchestration (D-03).
@@ -18,6 +19,16 @@ export async function executeOnChainTransfer(
   recipientWallet: `0x${string}`,
   amountUsd: number,
 ): Promise<{ routeTxHash: string; executeTxHash: string }> {
+  if (MOCK_CHAIN_TRANSFERS) {
+    console.warn('[chain] MOCK_CHAIN_TRANSFERS=true — returning mock tx hashes');
+    const seed = `${senderWallet}-${recipientWallet}-${amountUsd}-${Date.now()}`;
+    const encoded = Buffer.from(seed).toString('hex').padEnd(64, '0').slice(0, 64);
+    return {
+      routeTxHash: `0x${encoded}`,
+      executeTxHash: `0x${encoded.split('').reverse().join('')}`,
+    };
+  }
+
   const walletClient = getWalletClient();
   const amount = parseUnits(amountUsd.toString(), 6); // USDC 6 decimals
 

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 // D-05: Public paths that don't require authentication
 const publicPaths = [
   '/',
+  '/debug',
   '/api/auth',
   '/api/verify-proof',
   '/api/rp-signature',

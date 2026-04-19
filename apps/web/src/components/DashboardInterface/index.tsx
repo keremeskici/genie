@@ -53,45 +53,41 @@ export const DashboardInterface = () => {
       </div>
 
       {/* ── Genie finance summary ── */}
-      <div className="flex items-end gap-3 px-6 mb-8">
-        {/* Genie — tap to open chat */}
+      <div className="px-6 mb-8">
         <button
           onClick={() => router.push('/chat')}
-          className="flex-shrink-0 w-20 h-24 self-end active:opacity-70 transition-opacity duration-150"
+          className="flex items-end gap-2 w-full text-left active:opacity-80 transition-opacity duration-150"
         >
-          <img
-            src="/genie.png"
-            alt="Genie"
-            className="w-full h-full object-contain"
-            style={{ mixBlendMode: 'screen' }}
-          />
-        </button>
-
-        {/* Speech bubble — tap to open chat */}
-        <button
-          onClick={() => router.push('/chat')}
-          className="relative flex-1 min-w-0 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white break-words text-left active:opacity-70 transition-opacity duration-150"
-        >
-          <span
-            className="absolute bottom-5 -left-[9px] w-0 h-0"
-            style={{
-              borderTop: '8px solid transparent',
-              borderBottom: '8px solid transparent',
-              borderRight: '10px solid #171717',
-            }}
-          />
-          <div className="flex items-center gap-2 mb-3">
-            <span
-              className="material-symbols-outlined text-accent text-lg"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              auto_awesome
-            </span>
-            <span className="font-headline text-[10px] uppercase tracking-widest text-accent font-bold">
-              Genie
-            </span>
+          <div className="flex-shrink-0 w-20 h-24 self-end">
+            <img
+              src="/genie.png"
+              alt="Genie"
+              className="w-full h-full object-contain"
+              style={{ mixBlendMode: 'screen' }}
+            />
           </div>
-          <p className="text-sm leading-relaxed">{GENIE_SUMMARY}</p>
+          <div className="relative flex-1 min-w-0 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white break-words">
+            <span
+              className="absolute bottom-5 -left-[9px] w-0 h-0"
+              style={{
+                borderTop: '8px solid transparent',
+                borderBottom: '8px solid transparent',
+                borderRight: '10px solid #171717',
+              }}
+            />
+            <div className="flex items-center gap-2 mb-3">
+              <span
+                className="material-symbols-outlined text-accent text-lg"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                auto_awesome
+              </span>
+              <span className="font-headline text-[10px] uppercase tracking-widest text-accent font-bold">
+                Genie
+              </span>
+            </div>
+            <p className="text-sm leading-relaxed">{GENIE_SUMMARY}</p>
+          </div>
         </button>
       </div>
 

@@ -2,6 +2,10 @@
 import { MiniKit } from '@worldcoin/minikit-js';
 import { Tokens, tokenToDecimals } from '@worldcoin/minikit-js/commands';
 
+function createMiniKitNonce(): string {
+  return crypto.randomUUID().replace(/-/g, '');
+}
+
 /**
  * Trigger MiniKit Pay for a USDC transfer (per D-12).
  * Called when the agent confirms a send action in chat.
@@ -62,7 +66,7 @@ export async function requestMiniKitPermissions(): Promise<{
   try {
     // walletAuth provides wallet address and identity via SIWE (D-15)
     const authResult = await MiniKit.walletAuth({
-      nonce: crypto.randomUUID(),
+      nonce: createMiniKitNonce(),
     });
 
     const walletAddress = authResult.data?.address;
@@ -98,7 +102,7 @@ export async function triggerWalletSign(nonce?: string): Promise<{
 
   try {
     const result = await MiniKit.walletAuth({
-      nonce: nonce ?? crypto.randomUUID(),
+      nonce: nonce?.replace(/[^a-zA-Z0-9]/g, '') ?? createMiniKitNonce(),
     });
 
     return {

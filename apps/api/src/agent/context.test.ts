@@ -138,12 +138,13 @@ describe('assembleContext — verified user (D-09)', () => {
 });
 
 describe('assembleContext — unverified user (D-09)', () => {
-  it('includes verified=false with gating notice when isVerified is false', () => {
+  it('includes verified=false with temporary testing bypass when isVerified is false', () => {
     const ctx: UserContext = { ...mockUserContext, isVerified: false, isHumanBacked: false };
     const result = assembleContext(mockSystemPrompt, ctx, [], 'hello');
     const injection = result.messages[0].content as string;
     expect(injection).toContain('verified=false');
-    expect(injection).toContain('gated actions unavailable');
+    expect(injection).toContain('temporary testing bypass active');
+    expect(injection).toContain('verificationBypass=true');
   });
 
   it('includes humanBacked=false when isHumanBacked is false', () => {

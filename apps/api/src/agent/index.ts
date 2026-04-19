@@ -149,6 +149,14 @@ export async function runAgent(request: ChatRequest) {
         console.log('[agent] tool results:', JSON.stringify(toolResults, null, 2));
       }
     },
+    onFinish: ({ text, finishReason, totalUsage, steps }) => {
+      console.log(
+        `[agent] stream finished: finishReason=${finishReason}, textLength=${text.length}, steps=${steps.length}, inputTokens=${totalUsage.inputTokens}, outputTokens=${totalUsage.outputTokens}`,
+      );
+      if (text.length === 0) {
+        console.warn('[agent] stream finished with empty text');
+      }
+    },
     onError: ({ error }) => {
       console.error('[agent] stream error:', error);
     },
