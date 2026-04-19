@@ -12,6 +12,7 @@ export interface Transaction {
   category: string | null;
   source: string;
   createdAt: string;
+  executedAt: string | null;
   expiresAt: string | null;
 }
 
