@@ -35,8 +35,13 @@ function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
-export const ConfirmCard: React.FC<{ data: ConfirmCardData; userId: string }> = ({ data, userId }) => {
-  const [state, setState] = useState<'idle' | 'loading' | 'confirmed' | 'cancelled' | 'expired' | 'error'>('idle');
+export const ConfirmCard: React.FC<{
+  data: ConfirmCardData;
+  userId: string;
+  initialState?: 'idle' | 'cancelled';
+  onCancel?: () => void;
+}> = ({ data, userId, initialState = 'idle', onCancel }) => {
+  const [state, setState] = useState<'idle' | 'loading' | 'confirmed' | 'cancelled' | 'expired' | 'error'>(initialState);
   const [secondsLeft, setSecondsLeft] = useState(data.expiresInMinutes * 60);
   const [txHash, setTxHash] = useState('');
   const [error, setError] = useState('');
@@ -116,6 +121,7 @@ export const ConfirmCard: React.FC<{ data: ConfirmCardData; userId: string }> = 
 
   const handleCancel = () => {
     setState('cancelled');
+    onCancel?.();
   };
 
   const mins = Math.floor(secondsLeft / 60);

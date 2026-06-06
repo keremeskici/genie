@@ -144,7 +144,11 @@ export default function Onboarding() {
           className="flex-1 flex items-center justify-center py-5 font-black italic text-2xl uppercase tracking-tight active:opacity-60 transition-opacity duration-150 disabled:opacity-20 disabled:pointer-events-none rounded-2xl"
           style={{ fontFamily: "'Monument Extended', sans-serif", backgroundColor: '#ccff00', color: '#000000' }}
         >
-          {isSaving ? 'Saving...' : ctaLabel}
+          {isSaving ? (
+            <span className="inline-flex items-center justify-center">
+              <span className="h-6 w-6 rounded-full border-[3px] border-black/25 border-t-black animate-spin" />
+            </span>
+          ) : ctaLabel}
         </button>
       </div>
 
@@ -339,10 +343,6 @@ function StepBudget({
             ))}
           </div>
         </div>
-
-        <p className="text-xs text-white/25 leading-relaxed text-center px-4">
-          This saves your preferred spend threshold in Genie. On-chain spend authorization is temporarily disabled while the app migrates to Permit2.
-        </p>
       </div>
     </div>
   );

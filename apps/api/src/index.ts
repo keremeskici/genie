@@ -8,6 +8,7 @@ import { confirmRoute } from './routes/confirm';
 import { usersRoute } from './routes/users';
 import { balanceRoute } from './routes/balance';
 import { sendRoute } from './routes/send';
+import { debtsRoute } from './routes/debts';
 import { transactionsRoute } from './routes/transactions';
 import { versionRoute } from './routes/version';
 import { PORT } from './config/env';
@@ -22,6 +23,7 @@ app.route('/api/confirm', confirmRoute);
 app.route('/api/users', usersRoute);
 app.route('/api/balance', balanceRoute);
 app.route('/api/send', sendRoute);
+app.route('/api/debts', debtsRoute);
 app.route('/api/transactions', transactionsRoute);
 app.route('/api/version', versionRoute);
 

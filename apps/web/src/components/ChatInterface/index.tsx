@@ -1,13 +1,17 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { TextStreamChatTransport } from 'ai';
+import { TextStreamChatTransport, type UIMessage } from 'ai';
 import { getPublicApiBaseUrl, getPublicApiUrl } from '@/lib/backend-url';
+import { useBalance } from '@/hooks/useBalance';
+import { isDemoVerified } from '@/lib/demo-verification';
+import { HOME_CHAT_SEED_STORAGE_KEY } from '@/lib/home-genie';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  executeMiniKitTransactionBundle,
   executeMiniKitTransactions,
   extractMiniKitTransactionHash,
   isWalletTransactionRequiredResponse,
@@ -16,6 +20,7 @@ import {
   type WalletTransactionRequiredResponse,
   worldChainReceiptClient,
 } from '@/lib/minikit';
+import { buildYieldDepositBundle, getSuggestedYieldDepositAmount } from '@/lib/yield';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ContactList, parseContactList, type ContactData } from '../ContactCard';
@@ -27,12 +32,119 @@ export interface AiInsight {
   value: string;
 }
 
+function getChatStorageKey(userId: string) {
+  return `${CHAT_STORAGE_PREFIX}:${userId}`;
+}
+
+function isPersistedUiMessageArray(value: unknown): value is UIMessage[] {
+  return Array.isArray(value) && value.every((message) => {
+    if (!message || typeof message !== 'object') return false;
+    const candidate = message as {
+      id?: unknown;
+      role?: unknown;
+      parts?: unknown;
+    };
+
+    return (
+      typeof candidate.id === 'string'
+      && (candidate.role === 'user' || candidate.role === 'assistant' || candidate.role === 'system')
+      && Array.isArray(candidate.parts)
+    );
+  });
+}
+
+function stripStructuredJson(text: string): string {
+  return text
+    .replace(/```json\s*\n[\s\S]*?\n```/g, '')
+    .replace(/```json[\s\S]*$/g, '')
+    .trim();
+}
+
+function hasPendingTransactionPayload(text: string): boolean {
+  if (!text) return false;
+
+  return (
+    /```json/.test(text)
+    || /wallet_transaction_required/.test(text)
+    || /confirmation_required/.test(text)
+    || /"txPlan"\s*:/.test(text)
+  );
+}
+
+function shouldOfferYieldShortcut(text: string): boolean {
+  const normalized = text.toLowerCase();
+  const asksForAdvice = /(recommend|suggest|advice|should i|what should i do|best way)/.test(normalized);
+  const mentionsIdleCash = /(money|cash|usdc|balance|savings|save|invest|yield|vault)/.test(normalized);
+  const mentionsSavingsGoal = /(vacation|trip|travel|holiday|getaway)/.test(normalized)
+    && /(save|saving|savings|budget|put aside)/.test(normalized);
+  const explicitAllocationInstruction =
+    /(deposit|put|move|invest|allocate)/.test(normalized)
+    && /(\d+\s*%|\d+\s*percent)/.test(normalized)
+    && /(usdc|balance|money|cash|vault|yield)/.test(normalized);
+  return (asksForAdvice && mentionsIdleCash) || mentionsSavingsGoal || explicitAllocationInstruction;
+}
+
+function buildYieldRecommendationMessage(text: string, balance: number, amount: string): string {
+  const normalized = text.toLowerCase();
+  const mentionsTravelGoal = /(vacation|trip|travel|holiday|getaway)/.test(normalized);
+  const mentionsSavingGoal = /(save|saving|savings|budget|plan|financials)/.test(normalized);
+
+  if (mentionsTravelGoal || mentionsSavingGoal) {
+    return `Yes, I can help you plan for that. You have $${balance.toFixed(2)} in USDC right now, and a simple way to make progress is to put a smaller slice of it to work instead of letting it sit idle. How about we move $${amount} into a USDC yield vault on World Chain so it can earn while you keep the rest liquid? I’ll open the wallet transaction in a second.`;
+  }
+
+  return `Yes, I can help with that. You have $${balance.toFixed(2)} in USDC sitting idle, and one reasonable next step is to put a conservative portion of it into yield while keeping the rest available. How about we move $${amount} into a USDC vault on World Chain? I’ll open the wallet transaction in a second.`;
+}
+
+function getYieldResponseDelayMs(message: string): number {
+  return Math.min(Math.max(1200, 900 + message.length * 6), 2600);
+}
+
+function getYieldWalletDelayMs(message: string): number {
+  return Math.min(Math.max(3600, 2400 + message.length * 16), 7000);
+}
+
+function getYieldRejectionMessage(): string {
+  return 'No problem. We can leave your USDC where it is for now, pick a smaller amount, or look at other ways to save toward your goal when you are ready.';
+}
+
+function shouldRequireLoanVerification(text: string): boolean {
+  const normalized = text.toLowerCase();
+  return /(lend|loan|front|spot|cover)/.test(normalized)
+    && /(\$?\d+|\d+\s*(usdc|usd|dollars?))/i.test(normalized);
+}
+
+function getConfirmStateStorageKey(chatStorageKey: string) {
+  return `${chatStorageKey}${CHAT_CONFIRM_STATE_SUFFIX}`;
+}
+
+function isPersistedTxIdArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+function extractWalletTxIdsFromMessages(messages: UIMessage[]): Set<string> {
+  return new Set(
+    messages.flatMap((message) => {
+      if (message.role !== 'assistant') return [];
+      const textContent = message.parts
+        .filter((part) => part.type === 'text')
+        .map((part) => part.text ?? '')
+        .join('');
+
+      const walletTxData = parseWalletTransactionRequired(textContent);
+      return walletTxData ? [walletTxData.txId] : [];
+    }),
+  );
+}
+
 const API_URL = getPublicApiBaseUrl();
 const SHOW_CHAT_DEBUG = process.env.NEXT_PUBLIC_SHOW_CHAT_DEBUG === 'true';
 
 // Height of the bottom nav bar — input floats above it when keyboard is closed
 const NAV_HEIGHT = 148;
 const COMPOSER_GAP = 12;
+const CHAT_STORAGE_PREFIX = 'genie-chat-history';
+const CHAT_CONFIRM_STATE_SUFFIX = ':confirm-state';
 
 const PLACEHOLDERS = [
   'Go off.',
@@ -58,17 +170,29 @@ export const ChatInterface = () => {
   const contentRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const yieldResponseTimeoutRef = useRef<number | null>(null);
+  const yieldWalletTimeoutRef = useRef<number | null>(null);
   const permissionsRequested = useRef(false);
   const handledWalletTxIds = useRef<Set<string>>(new Set());
+  const hydratedStorageKey = useRef<string | null>(null);
   const [walletExecutionState, setWalletExecutionState] = useState<Record<string, 'pending' | 'success' | 'error'>>({});
   const [walletExecutionError, setWalletExecutionError] = useState<Record<string, string>>({});
+  const [cancelledConfirmTxIds, setCancelledConfirmTxIds] = useState<string[]>([]);
+  const [localYieldThinking, setLocalYieldThinking] = useState(false);
+  const chatStorageKey = session?.user?.id ? getChatStorageKey(session.user.id) : null;
+  const { balance, refetch: refetchBalance } = useBalance(session?.user?.walletAddress ?? '');
+  const numericBalance = balance ? parseFloat(balance) : null;
+  const demoVerified = isDemoVerified(session?.user?.id);
+  const chatSuggestedYieldAmount = numericBalance !== null && !Number.isNaN(numericBalance)
+    ? getSuggestedYieldDepositAmount(numericBalance, 0.2)
+    : '0.00';
 
   const transport = useMemo(
     () => new TextStreamChatTransport({ api: `${API_URL}/api/chat` }),
     [],
   );
 
-  const { messages, sendMessage, status, error, regenerate } = useChat({
+  const { messages, setMessages, sendMessage, status, error, regenerate } = useChat({
     transport,
     onError: (err) => {
       console.error('[chat] useChat error:', err);
@@ -79,7 +203,119 @@ export const ChatInterface = () => {
   });
   const { poll } = useUserOperationReceipt({ client: worldChainReceiptClient });
 
-  const isThinking = status === 'submitted';
+  const isThinking = status === 'submitted' || localYieldThinking;
+
+  useEffect(() => {
+    return () => {
+      if (yieldResponseTimeoutRef.current) {
+        window.clearTimeout(yieldResponseTimeoutRef.current);
+      }
+      if (yieldWalletTimeoutRef.current) {
+        window.clearTimeout(yieldWalletTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!chatStorageKey) {
+      if (hydratedStorageKey.current !== null) {
+        hydratedStorageKey.current = null;
+        setMessages([]);
+      }
+      return;
+    }
+
+    if (hydratedStorageKey.current === chatStorageKey) return;
+    hydratedStorageKey.current = chatStorageKey;
+    handledWalletTxIds.current = new Set();
+    setWalletExecutionState({});
+    setWalletExecutionError({});
+    setCancelledConfirmTxIds([]);
+
+    try {
+      const persisted = window.sessionStorage.getItem(chatStorageKey);
+      const persistedConfirmState = window.sessionStorage.getItem(getConfirmStateStorageKey(chatStorageKey));
+      if (persistedConfirmState) {
+        const parsedConfirmState = JSON.parse(persistedConfirmState);
+        if (isPersistedTxIdArray(parsedConfirmState)) {
+          setCancelledConfirmTxIds(parsedConfirmState);
+        } else {
+          window.sessionStorage.removeItem(getConfirmStateStorageKey(chatStorageKey));
+        }
+      }
+
+      if (!persisted) {
+        setMessages([]);
+        return;
+      }
+
+      const parsed = JSON.parse(persisted);
+      if (!isPersistedUiMessageArray(parsed)) {
+        window.sessionStorage.removeItem(chatStorageKey);
+        setMessages([]);
+        return;
+      }
+
+      handledWalletTxIds.current = extractWalletTxIdsFromMessages(parsed);
+      setMessages(parsed);
+    } catch {
+      window.sessionStorage.removeItem(chatStorageKey);
+      window.sessionStorage.removeItem(getConfirmStateStorageKey(chatStorageKey));
+      setMessages([]);
+    }
+  }, [chatStorageKey, setMessages]);
+
+  useEffect(() => {
+    if (!chatStorageKey || hydratedStorageKey.current !== chatStorageKey) return;
+    window.sessionStorage.setItem(chatStorageKey, JSON.stringify(messages));
+  }, [chatStorageKey, messages]);
+
+  useEffect(() => {
+    if (!chatStorageKey || hydratedStorageKey.current !== chatStorageKey) return;
+    window.sessionStorage.setItem(
+      getConfirmStateStorageKey(chatStorageKey),
+      JSON.stringify(cancelledConfirmTxIds),
+    );
+  }, [cancelledConfirmTxIds, chatStorageKey]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const raw = window.sessionStorage.getItem(HOME_CHAT_SEED_STORAGE_KEY);
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        userId?: string;
+        message?: string;
+        followUp?: string;
+      };
+
+      if (parsed.userId !== session.user.id || !parsed.message || !parsed.followUp) {
+        window.sessionStorage.removeItem(HOME_CHAT_SEED_STORAGE_KEY);
+        return;
+      }
+
+      const seededMessage = parsed.message;
+      const seededFollowUp = parsed.followUp;
+      window.sessionStorage.removeItem(HOME_CHAT_SEED_STORAGE_KEY);
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          parts: [{ type: 'text', text: seededMessage }],
+        },
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          parts: [{ type: 'text', text: seededFollowUp }],
+        },
+      ]);
+    } catch {
+      window.sessionStorage.removeItem(HOME_CHAT_SEED_STORAGE_KEY);
+    }
+  }, [session?.user?.id, setMessages]);
 
   const scrollChatToBottom = (behavior: ScrollBehavior = 'smooth') => {
     const container = scrollRef.current;
@@ -274,7 +510,11 @@ export const ChatInterface = () => {
       textareaRef.current.style.height = 'auto';
     }
 
-    if (!permissionsRequested.current) {
+    const sessionHasMiniKitIdentity = Boolean(
+      session?.user?.walletAddress && session?.user?.username !== undefined,
+    );
+
+    if (!permissionsRequested.current && !sessionHasMiniKitIdentity) {
       permissionsRequested.current = true;
       requestMiniKitPermissions().then((perms) => {
         if (perms) console.log('[minikit] permissions granted:', perms);
@@ -284,6 +524,129 @@ export const ChatInterface = () => {
     }
 
     setLastSendDebug(`sending "${text}" to ${API_URL || 'same-origin'}/api/chat`);
+
+    if (!demoVerified && shouldRequireLoanVerification(text)) {
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: 'user',
+          parts: [{ type: 'text', text }],
+        },
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          parts: [{
+            type: 'text',
+            text: 'Verify with World ID in Profile before Genie can lend money or record new loans for you. Once you verify, I can help send the funds and track the debt together.',
+          }],
+        },
+      ]);
+      return;
+    }
+
+    if (shouldOfferYieldShortcut(text) && numericBalance !== null && !Number.isNaN(numericBalance) && numericBalance > 0) {
+      if (!demoVerified) {
+        setMessages((current) => [
+          ...current,
+          {
+            id: crypto.randomUUID(),
+            role: 'user',
+            parts: [{ type: 'text', text }],
+          },
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            parts: [{
+              type: 'text',
+              text: 'Verify with World ID in Profile before Genie can move money into yield strategies. Once you verify, I can help open the deposit transaction for you.',
+            }],
+          },
+        ]);
+        return;
+      }
+
+      const recommendationText = buildYieldRecommendationMessage(
+        text,
+        numericBalance,
+        chatSuggestedYieldAmount,
+      );
+      const responseDelayMs = getYieldResponseDelayMs(recommendationText);
+      const walletDelayMs = getYieldWalletDelayMs(recommendationText);
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: 'user',
+          parts: [{ type: 'text', text }],
+        },
+      ]);
+      setLocalYieldThinking(true);
+
+      yieldResponseTimeoutRef.current = window.setTimeout(() => {
+        setMessages((current) => [
+          ...current,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            parts: [{ type: 'text', text: recommendationText }],
+          },
+        ]);
+        setLocalYieldThinking(false);
+      }, responseDelayMs);
+
+      yieldWalletTimeoutRef.current = window.setTimeout(() => {
+        executeMiniKitTransactionBundle(
+          buildYieldDepositBundle(
+            session?.user?.walletAddress as `0x${string}`,
+            chatSuggestedYieldAmount,
+          ),
+        )
+          .then(async ({ userOpHash }) => {
+            const receipt = await poll(userOpHash);
+            const finalHash = extractMiniKitTransactionHash(receipt) ?? userOpHash;
+            console.log('[chat][yield] deposit completed', {
+              userOpHash,
+              finalHash,
+              amountUsd: chatSuggestedYieldAmount,
+            });
+            refetchBalance();
+            setMessages((current) => [
+              ...current,
+              {
+                id: crypto.randomUUID(),
+                role: 'assistant',
+                parts: [{
+                  type: 'text',
+                  text: `Yield deposit submitted for $${chatSuggestedYieldAmount} USDC.`,
+                }],
+              },
+            ]);
+          })
+          .catch((err) => {
+            console.error('[chat][yield] deposit failed', err);
+            const errMessage = err instanceof Error ? err.message : '';
+            const didUserReject = /user[_\s-]?rejected/i.test(errMessage);
+            setMessages((current) => [
+              ...current,
+              {
+                id: crypto.randomUUID(),
+                role: 'assistant',
+                parts: [{
+                  type: 'text',
+                  text: didUserReject
+                    ? getYieldRejectionMessage()
+                    : err instanceof Error
+                      ? `I couldn’t open the yield transaction: ${err.message}`
+                      : 'I couldn’t open the yield transaction.',
+                }],
+              },
+            ]);
+          });
+      }, walletDelayMs);
+      return;
+    }
+
     sendMessage(
       { text },
       {
@@ -337,8 +700,14 @@ export const ChatInterface = () => {
                 key={message.id}
                 parts={message.parts}
                 userId={session?.user?.id ?? ''}
+                cancelledConfirmTxIds={cancelledConfirmTxIds}
                 walletExecutionState={walletExecutionState}
                 walletExecutionError={walletExecutionError}
+                onConfirmCancel={(txId: string) => {
+                  setCancelledConfirmTxIds((current) => (
+                    current.includes(txId) ? current : [...current, txId]
+                  ));
+                }}
                 onContactSelect={(contact: ContactData) => {
                   if (status !== 'ready') return;
                   sendMessage(
@@ -497,14 +866,18 @@ function AiMessageBubble({
   parts,
   onContactSelect,
   userId,
+  cancelledConfirmTxIds,
   walletExecutionState,
   walletExecutionError,
+  onConfirmCancel,
 }: {
   parts: Array<{ type: string; text?: string }>;
   onContactSelect: (contact: ContactData) => void;
   userId: string;
+  cancelledConfirmTxIds: string[];
   walletExecutionState: Record<string, 'pending' | 'success' | 'error'>;
   walletExecutionError: Record<string, string>;
+  onConfirmCancel: (txId: string) => void;
 }) {
   const textContent = parts
     .filter((p) => p.type === 'text')
@@ -514,9 +887,10 @@ function AiMessageBubble({
   const contactData = parseContactList(textContent);
   const confirmData = parseConfirmCard(textContent);
   const walletTxData = parseWalletTransactionRequired(textContent);
+  const transactionPayloadPending = !confirmData && !walletTxData && hasPendingTransactionPayload(textContent);
 
-  const markdownText = (contactData || confirmData || walletTxData)
-    ? textContent.replace(/```json\s*\n[\s\S]*?\n```/g, '').trim()
+  const markdownText = (contactData || confirmData || walletTxData || transactionPayloadPending)
+    ? stripStructuredJson(textContent)
     : textContent;
 
   return (
@@ -588,8 +962,16 @@ function AiMessageBubble({
               error={walletExecutionError[walletTxData.txId]}
             />
           )}
+          {transactionPayloadPending && !markdownText && (
+            <PendingTransactionCard />
+          )}
           {confirmData && (
-            <ConfirmCard data={confirmData} userId={userId} />
+            <ConfirmCard
+              data={confirmData}
+              userId={userId}
+              initialState={cancelledConfirmTxIds.includes(confirmData.txId) ? 'cancelled' : 'idle'}
+              onCancel={() => onConfirmCancel(confirmData.txId)}
+            />
           )}
         </div>
       </div>
@@ -611,6 +993,22 @@ function parseWalletTransactionRequired(text: string): WalletTransactionRequired
   }
 
   return null;
+}
+
+function PendingTransactionCard() {
+  return (
+    <div className="mt-3 bg-background border border-white/10 p-4 rounded-xl">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="material-symbols-outlined text-accent text-base">account_balance_wallet</span>
+        <p className="text-sm font-bold text-white">Preparing transaction...</p>
+      </div>
+      <div className="flex gap-1.5 items-center h-5">
+        <span className="w-2 h-2 bg-accent/60 rounded-full animate-bounce [animation-delay:0ms]" />
+        <span className="w-2 h-2 bg-accent/60 rounded-full animate-bounce [animation-delay:150ms]" />
+        <span className="w-2 h-2 bg-accent/60 rounded-full animate-bounce [animation-delay:300ms]" />
+      </div>
+    </div>
+  );
 }
 
 function WalletExecutionCard({

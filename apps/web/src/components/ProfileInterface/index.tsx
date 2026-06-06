@@ -3,24 +3,31 @@
 import { getPublicApiUrl } from '@/lib/backend-url';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useTransactions } from '@/hooks/useTransactions';
 import { Verify } from '../Verify';
 
-// TODO: replace with real data from API
-const MOCK_OLD_TRANSACTIONS = [
-  { id: '1', label: 'Sent to 0x…3a9f', amount: '-$12.00', date: 'Mar 18, 2025', positive: false },
-  { id: '2', label: 'Received USDC', amount: '+$50.00', date: 'Mar 10, 2025', positive: true },
-  { id: '3', label: 'Add Funds', amount: '+$100.00', date: 'Feb 28, 2025', positive: true },
-  { id: '4', label: 'Sent to 0x…b72c', amount: '-$8.50', date: 'Feb 14, 2025', positive: false },
-  { id: '5', label: 'Received USDC', amount: '+$25.00', date: 'Jan 30, 2025', positive: true },
-];
+function formatWallet(addr: string): string {
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+function formatDate(date: string): string {
+  return new Date(date).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
 
 export const ProfileInterface = () => {
   const { data: session } = useSession();
+  const userId = session?.user?.id ?? '';
   // TODO: initialise from session / user API
   const [spendingLimit, setSpendingLimit] = useState('');
   const [limitSaved, setLimitSaved] = useState(false);
   const [limitError, setLimitError] = useState('');
   const [showAllTx, setShowAllTx] = useState(false);
+  const { transactions, loading: txLoading, error: txError } = useTransactions(userId);
+  const visibleTransactions = showAllTx ? transactions : transactions.slice(0, 4);
 
   const saveLimit = async (val: number) => {
     const userId = session?.user?.id;
@@ -117,37 +124,49 @@ export const ProfileInterface = () => {
       {/* ── Transaction History ── */}
       <Section label="Transaction History">
         <p className="text-xs text-white/40 mb-4">Full history of past activity.</p>
-        {/* TODO: replace with paginated API results */}
         <div className="flex flex-col divide-y divide-white/5">
-          {(showAllTx ? MOCK_OLD_TRANSACTIONS : MOCK_OLD_TRANSACTIONS.slice(0, 4)).map((tx) => (
-            <div key={tx.id} className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-surface flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-outlined text-white/40 text-base">
-                    {tx.positive ? 'arrow_downward' : 'arrow_upward'}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white">{tx.label}</p>
-                  <p className="text-[11px] text-white/40">{tx.date}</p>
-                </div>
-              </div>
-              <p
-                className={`font-headline font-bold text-sm ${
-                  tx.positive ? 'text-accent' : 'text-white/60'
-                }`}
-              >
-                {tx.amount}
-              </p>
+          {txLoading ? (
+            <div className="py-4 flex flex-col gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-10 bg-white/5 animate-pulse rounded" />
+              ))}
             </div>
-          ))}
+          ) : txError ? (
+            <p className="py-4 text-sm text-red-400">Could not load transaction history.</p>
+          ) : visibleTransactions.length === 0 ? (
+            <p className="py-4 text-sm text-white/40">No transactions yet</p>
+          ) : (
+            visibleTransactions.map((tx) => (
+              <div key={tx.id} className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-surface flex items-center justify-center flex-shrink-0 rounded-lg">
+                    <span className="material-symbols-outlined text-white/40 text-base">
+                      arrow_upward
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      Sent to {formatWallet(tx.recipientWallet)}
+                    </p>
+                    <p className="text-[11px] text-white/40">
+                      {formatDate(tx.createdAt)}
+                      {tx.status !== 'confirmed' ? ` • ${tx.status}` : ''}
+                    </p>
+                  </div>
+                </div>
+                <p className="font-headline font-bold text-sm text-white/60">
+                  -{parseFloat(tx.amountUsd).toFixed(2)} USDC
+                </p>
+              </div>
+            ))
+          )}
         </div>
-        {MOCK_OLD_TRANSACTIONS.length > 4 && (
+        {transactions.length > 4 && (
           <button
             onClick={() => setShowAllTx((v) => !v)}
             className="mt-2 w-full py-3 text-[11px] font-headline font-bold uppercase tracking-widest text-accent/70 active:text-accent transition-colors"
           >
-            {showAllTx ? 'Show Less' : `See All Transactions (${MOCK_OLD_TRANSACTIONS.length})`}
+            {showAllTx ? 'Show Less' : `See All Transactions (${transactions.length})`}
           </button>
         )}
       </Section>

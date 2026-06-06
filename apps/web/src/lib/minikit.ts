@@ -135,6 +135,15 @@ export type WalletTransactionPlan = {
   recipient: `0x${string}`;
 };
 
+export type MiniKitTransactionBundle = {
+  chainId: number;
+  transactions: Array<{
+    to: `0x${string}`;
+    data: `0x${string}`;
+    value?: `0x${string}`;
+  }>;
+};
+
 export type WalletTransactionRequiredResponse = {
   type: 'wallet_transaction_required';
   txId: string;
@@ -184,7 +193,7 @@ export function extractMiniKitTransactionHash(value: unknown): string | undefine
   return extractHashFromUnknown(value);
 }
 
-export async function executeMiniKitTransactions(txPlan: WalletTransactionPlan): Promise<{
+export async function executeMiniKitTransactionBundle(txPlan: MiniKitTransactionBundle): Promise<{
   userOpHash: string;
 }> {
   if (!MiniKit.isInstalled()) {
@@ -211,6 +220,15 @@ export async function executeMiniKitTransactions(txPlan: WalletTransactionPlan):
   }
 
   return { userOpHash };
+}
+
+export async function executeMiniKitTransactions(txPlan: WalletTransactionPlan): Promise<{
+  userOpHash: string;
+}> {
+  return executeMiniKitTransactionBundle({
+    chainId: txPlan.chainId,
+    transactions: txPlan.transactions,
+  });
 }
 
 export const worldChainReceiptClient = createPublicClient({
