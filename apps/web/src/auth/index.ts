@@ -1,5 +1,5 @@
 import { hashNonce } from '@/auth/wallet/client-helpers';
-import { getBackendApiUrl } from '@/lib/backend-url';
+import { provisionUser } from '@/lib/server/users';
 import { MiniKit } from '@worldcoin/minikit-js';
 import type { MiniAppWalletAuthSuccessPayload } from '@worldcoin/minikit-js/commands';
 import { verifySiweMessage } from '@worldcoin/minikit-js/siwe';
@@ -72,29 +72,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const userInfo = await MiniKit.getUserInfo(finalPayload.address);
         const walletAddress = result.siweMessageData.address;
 
-        const apiUrl = getBackendApiUrl();
-        if (!apiUrl) {
-          console.error('[auth] BACKEND_API_URL or NEXT_PUBLIC_API_URL is missing in environment');
-          return null;
-        }
-
-        console.log(`[auth] provisioning user at: ${apiUrl}/api/users/provision`);
+        console.log('[auth] provisioning user (same-app DB call)');
         try {
-          const provisionRes = await fetch(`${apiUrl}/api/users/provision`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              walletAddress,
-              displayName: userInfo?.username ?? null,
-            }),
+          const { userId, needsOnboarding } = await provisionUser({
+            walletAddress,
+            displayName: userInfo?.username ?? null,
           });
-
-          if (!provisionRes.ok) {
-            console.error('[auth] backend provisioning failed:', provisionRes.status, await provisionRes.text());
-            return null;
-          }
-
-          const { userId, needsOnboarding } = await provisionRes.json();
           console.log('[auth] authorize successful for user:', userId);
 
           return {
@@ -105,7 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             profilePictureUrl: userInfo?.profilePictureUrl ?? '',
           };
         } catch (err) {
-          console.error('[auth] fetch error during provisioning:', err);
+          console.error('[auth] error during provisioning:', err);
           return null;
         }
       },

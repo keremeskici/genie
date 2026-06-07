@@ -15,7 +15,7 @@ import {
 import { isDemoVerified } from '@/lib/demo-verification';
 import {
   getSuggestedYieldDepositAmount,
-  RE7_USDC_VAULT_ADDRESS,
+  GENIE_VAULT_ADDRESS,
   RE7_USDC_VAULT_APR,
   RE7_USDC_VAULT_PROVIDER,
 } from '@/lib/yield';
@@ -64,11 +64,10 @@ export const DashboardInterface = () => {
   const { debts, loading: debtLoading, error: debtError } = useDebts(userId);
   const {
     positionUsd: yieldPositionUsd,
-    shares: yieldShares,
     loading: yieldPositionLoading,
     error: yieldPositionError,
     refetch: refetchYieldPosition,
-  } = useYieldPosition(walletAddress, RE7_USDC_VAULT_ADDRESS);
+  } = useYieldPosition(walletAddress, GENIE_VAULT_ADDRESS);
   const recentTransactions = transactions.slice(0, 5);
   const numericBalance = balance ? parseFloat(balance) : null;
   const numericYieldPosition = yieldPositionUsd ? parseFloat(yieldPositionUsd) : 0;
@@ -180,17 +179,13 @@ export const DashboardInterface = () => {
                   ${yieldPositionUsd}
                 </h3>
                 <p className="mt-2 text-sm text-white/55">
-                  Current estimated asset value in the vault.
+                  Your managed Genie balance — earning yield, ready for Genie to spend.
                 </p>
               </div>
               <div className="rounded-2xl bg-white/5 px-4 py-3 text-right min-w-[110px]">
                 <p className="text-[11px] uppercase tracking-widest text-white/35">APR</p>
                 <p className="mt-2 font-headline text-lg font-bold text-white">{RE7_USDC_VAULT_APR}</p>
               </div>
-            </div>
-            <div className="mt-4 flex items-center justify-between text-sm text-white/55">
-              <span>Vault shares</span>
-              <span>{yieldShares ? Number(yieldShares).toFixed(2) : '0.00'}</span>
             </div>
             <div className="mt-6">
               <button

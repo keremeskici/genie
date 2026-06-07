@@ -50,7 +50,7 @@ export default function DebugPage() {
 
       <section style={{ display: 'grid', gap: 12, fontFamily: 'monospace', fontSize: 13 }}>
         <div>origin: {origin}</div>
-        <div>NEXT_PUBLIC_API_URL: {apiBase || '(empty - same origin)'}</div>
+        <div>API base: {apiBase || '(same origin)'}</div>
         <div>version URL: {apiBase || origin}/api/version</div>
         <div>chat URL: {apiBase || origin}/api/chat</div>
         <div>MiniKit installed: {String(isMiniKitInstalled)}</div>

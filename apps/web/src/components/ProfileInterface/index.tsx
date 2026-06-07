@@ -113,7 +113,7 @@ export const ProfileInterface = () => {
         </div>
         {spendingLimit && !isNaN(parseFloat(spendingLimit)) && (
           <p className="mt-2 text-[11px] text-accent/70">
-            Genie will store ${parseFloat(spendingLimit).toFixed(2)} as your preferred spend threshold while Permit2 authorization is being built.
+            Genie can spend up to ${parseFloat(spendingLimit).toFixed(2)} per transfer from your vault on your behalf.
           </p>
         )}
         {limitError && (

@@ -8,3 +8,7 @@ node_modules/
 .next
 .claude
 .turbo
+docs
+.codex
+.planning
+.DS_Store
