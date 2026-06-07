@@ -49,31 +49,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         signedNonce: string;
         finalPayloadJson: string;
       }) => {
-        console.log('[auth] authorize attempt started');
-        const expectedSignedNonce = hashNonce({ nonce });
-
-        if (signedNonce !== expectedSignedNonce) {
-          console.error('[auth] Invalid signed nonce. Check HMAC_SECRET_KEY.');
-          return null;
-        }
-
-        const finalPayload: MiniAppWalletAuthSuccessPayload =
-          JSON.parse(finalPayloadJson);
-        
-        console.log('[auth] verifying SIWE message...');
-        const result = await verifySiweMessage(finalPayload, nonce);
-
-        if (!result.isValid || !result.siweMessageData.address) {
-          console.error('[auth] SIWE verification failed:', result);
-          return null;
-        }
-
-        console.log('[auth] fetching user info from MiniKit...');
-        const userInfo = await MiniKit.getUserInfo(finalPayload.address);
-        const walletAddress = result.siweMessageData.address;
-
-        console.log('[auth] provisioning user (same-app DB call)');
+        // Whole body wrapped so a thrown error logs its real cause instead of
+        // silently surfacing as a generic CredentialsSignin with no diagnostics.
         try {
+          console.log('[auth] authorize attempt started', {
+            hasNonce: typeof nonce === 'string' && nonce.length > 0,
+            hasSignedNonce: typeof signedNonce === 'string' && signedNonce.length > 0,
+            hasFinalPayload: typeof finalPayloadJson === 'string' && finalPayloadJson.length > 0,
+            env: {
+              HMAC_SECRET_KEY: Boolean(process.env.HMAC_SECRET_KEY),
+              AUTH_SECRET: Boolean(process.env.AUTH_SECRET),
+              DATABASE_URL: Boolean(process.env.DATABASE_URL),
+            },
+          });
+
+          const expectedSignedNonce = hashNonce({ nonce });
+          if (signedNonce !== expectedSignedNonce) {
+            console.error('[auth] Invalid signed nonce. Check HMAC_SECRET_KEY matches across server.');
+            return null;
+          }
+
+          const finalPayload: MiniAppWalletAuthSuccessPayload = JSON.parse(finalPayloadJson);
+
+          console.log('[auth] verifying SIWE message...');
+          const result = await verifySiweMessage(finalPayload, nonce);
+          if (!result.isValid || !result.siweMessageData.address) {
+            console.error('[auth] SIWE verification failed:', result);
+            return null;
+          }
+
+          console.log('[auth] fetching user info from MiniKit...');
+          const userInfo = await MiniKit.getUserInfo(finalPayload.address);
+          const walletAddress = result.siweMessageData.address;
+
+          console.log('[auth] provisioning user (same-app DB call)');
           const { userId, needsOnboarding } = await provisionUser({
             walletAddress,
             displayName: userInfo?.username ?? null,
@@ -88,7 +97,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             profilePictureUrl: userInfo?.profilePictureUrl ?? '',
           };
         } catch (err) {
-          console.error('[auth] error during provisioning:', err);
+          // Surface the true cause (DB auth failure, bad HMAC key, SIWE error, etc.)
+          console.error('[auth] authorize failed:', err instanceof Error ? `${err.name}: ${err.message}` : err);
+          if (err instanceof Error && err.stack) console.error(err.stack);
           return null;
         }
       },
