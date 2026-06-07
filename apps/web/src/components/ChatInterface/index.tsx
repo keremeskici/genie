@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useChat } from '@ai-sdk/react';
-import { TextStreamChatTransport, type UIMessage } from 'ai';
-import { getPublicApiBaseUrl, getPublicApiUrl } from '@/lib/backend-url';
-import { useBalance } from '@/hooks/useBalance';
-import { isDemoVerified } from '@/lib/demo-verification';
-import { HOME_CHAT_SEED_STORAGE_KEY } from '@/lib/home-genie';
-import { MiniKit } from '@worldcoin/minikit-js';
-import { useUserOperationReceipt } from '@worldcoin/minikit-react';
-import { useSession } from 'next-auth/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useChat } from "@ai-sdk/react";
+import { TextStreamChatTransport, type UIMessage } from "ai";
+import { getPublicApiBaseUrl, getPublicApiUrl } from "@/lib/backend-url";
+import { useBalance } from "@/hooks/useBalance";
+import { useVerificationStatus } from "@/lib/verification";
+import { HOME_CHAT_SEED_STORAGE_KEY } from "@/lib/home-genie";
+import { MiniKit } from "@worldcoin/minikit-js";
+import { useUserOperationReceipt } from "@worldcoin/minikit-react";
+import { useSession } from "next-auth/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   executeMiniKitTransactionBundle,
   executeMiniKitTransactions,
@@ -19,13 +19,20 @@ import {
   triggerMiniKitPay,
   type WalletTransactionRequiredResponse,
   worldChainReceiptClient,
-} from '@/lib/minikit';
-import { buildYieldDepositBundle, getSuggestedYieldDepositAmount } from '@/lib/yield';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { ContactList, parseContactList, type ContactData } from '../ContactCard';
-import { ConfirmCard, parseConfirmCard } from '../ConfirmCard';
-import { ThinkingIndicator } from '../ThinkingIndicator';
+} from "@/lib/minikit";
+import {
+  buildYieldDepositBundle,
+  getSuggestedYieldDepositAmount,
+} from "@/lib/yield";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import {
+  ContactList,
+  parseContactList,
+  type ContactData,
+} from "../ContactCard";
+import { ConfirmCard, parseConfirmCard } from "../ConfirmCard";
+import { ThinkingIndicator } from "../ThinkingIndicator";
 
 export interface AiInsight {
   label: string;
@@ -37,26 +44,31 @@ function getChatStorageKey(userId: string) {
 }
 
 function isPersistedUiMessageArray(value: unknown): value is UIMessage[] {
-  return Array.isArray(value) && value.every((message) => {
-    if (!message || typeof message !== 'object') return false;
-    const candidate = message as {
-      id?: unknown;
-      role?: unknown;
-      parts?: unknown;
-    };
+  return (
+    Array.isArray(value) &&
+    value.every((message) => {
+      if (!message || typeof message !== "object") return false;
+      const candidate = message as {
+        id?: unknown;
+        role?: unknown;
+        parts?: unknown;
+      };
 
-    return (
-      typeof candidate.id === 'string'
-      && (candidate.role === 'user' || candidate.role === 'assistant' || candidate.role === 'system')
-      && Array.isArray(candidate.parts)
-    );
-  });
+      return (
+        typeof candidate.id === "string" &&
+        (candidate.role === "user" ||
+          candidate.role === "assistant" ||
+          candidate.role === "system") &&
+        Array.isArray(candidate.parts)
+      );
+    })
+  );
 }
 
 function stripStructuredJson(text: string): string {
   return text
-    .replace(/```json\s*\n[\s\S]*?\n```/g, '')
-    .replace(/```json[\s\S]*$/g, '')
+    .replace(/```json\s*\n[\s\S]*?\n```/g, "")
+    .replace(/```json[\s\S]*$/g, "")
     .trim();
 }
 
@@ -64,30 +76,48 @@ function hasPendingTransactionPayload(text: string): boolean {
   if (!text) return false;
 
   return (
-    /```json/.test(text)
-    || /wallet_transaction_required/.test(text)
-    || /confirmation_required/.test(text)
-    || /"txPlan"\s*:/.test(text)
+    /```json/.test(text) ||
+    /wallet_transaction_required/.test(text) ||
+    /confirmation_required/.test(text) ||
+    /"txPlan"\s*:/.test(text)
   );
 }
 
 function shouldOfferYieldShortcut(text: string): boolean {
   const normalized = text.toLowerCase();
-  const asksForAdvice = /(recommend|suggest|advice|should i|what should i do|best way)/.test(normalized);
-  const mentionsIdleCash = /(money|cash|usdc|balance|savings|save|invest|yield|vault)/.test(normalized);
-  const mentionsSavingsGoal = /(vacation|trip|travel|holiday|getaway)/.test(normalized)
-    && /(save|saving|savings|budget|put aside)/.test(normalized);
+  const asksForAdvice =
+    /(recommend|suggest|advice|should i|what should i do|best way)/.test(
+      normalized,
+    );
+  const mentionsIdleCash =
+    /(money|cash|usdc|balance|savings|save|invest|yield|vault)/.test(
+      normalized,
+    );
+  const mentionsSavingsGoal =
+    /(vacation|trip|travel|holiday|getaway)/.test(normalized) &&
+    /(save|saving|savings|budget|put aside)/.test(normalized);
   const explicitAllocationInstruction =
-    /(deposit|put|move|invest|allocate)/.test(normalized)
-    && /(\d+\s*%|\d+\s*percent)/.test(normalized)
-    && /(usdc|balance|money|cash|vault|yield)/.test(normalized);
-  return (asksForAdvice && mentionsIdleCash) || mentionsSavingsGoal || explicitAllocationInstruction;
+    /(deposit|put|move|invest|allocate)/.test(normalized) &&
+    /(\d+\s*%|\d+\s*percent)/.test(normalized) &&
+    /(usdc|balance|money|cash|vault|yield)/.test(normalized);
+  return (
+    (asksForAdvice && mentionsIdleCash) ||
+    mentionsSavingsGoal ||
+    explicitAllocationInstruction
+  );
 }
 
-function buildYieldRecommendationMessage(text: string, balance: number, amount: string): string {
+function buildYieldRecommendationMessage(
+  text: string,
+  balance: number,
+  amount: string,
+): string {
   const normalized = text.toLowerCase();
-  const mentionsTravelGoal = /(vacation|trip|travel|holiday|getaway)/.test(normalized);
-  const mentionsSavingGoal = /(save|saving|savings|budget|plan|financials)/.test(normalized);
+  const mentionsTravelGoal = /(vacation|trip|travel|holiday|getaway)/.test(
+    normalized,
+  );
+  const mentionsSavingGoal =
+    /(save|saving|savings|budget|plan|financials)/.test(normalized);
 
   if (mentionsTravelGoal || mentionsSavingGoal) {
     return `Yes, I can help you plan for that. You have $${balance.toFixed(2)} in USDC right now, and a simple way to make progress is to put a smaller slice of it to work instead of letting it sit idle. How about we move $${amount} into a USDC yield vault on World Chain so it can earn while you keep the rest liquid? I’ll open the wallet transaction in a second.`;
@@ -105,13 +135,15 @@ function getYieldWalletDelayMs(message: string): number {
 }
 
 function getYieldRejectionMessage(): string {
-  return 'No problem. We can leave your USDC where it is for now, pick a smaller amount, or look at other ways to save toward your goal when you are ready.';
+  return "No problem. We can leave your USDC where it is for now, pick a smaller amount, or look at other ways to save toward your goal when you are ready.";
 }
 
 function shouldRequireLoanVerification(text: string): boolean {
   const normalized = text.toLowerCase();
-  return /(lend|loan|front|spot|cover)/.test(normalized)
-    && /(\$?\d+|\d+\s*(usdc|usd|dollars?))/i.test(normalized);
+  return (
+    /(lend|loan|front|spot|cover)/.test(normalized) &&
+    /(\$?\d+|\d+\s*(usdc|usd|dollars?))/i.test(normalized)
+  );
 }
 
 function getConfirmStateStorageKey(chatStorageKey: string) {
@@ -119,17 +151,19 @@ function getConfirmStateStorageKey(chatStorageKey: string) {
 }
 
 function isPersistedTxIdArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+  return (
+    Array.isArray(value) && value.every((entry) => typeof entry === "string")
+  );
 }
 
 function extractWalletTxIdsFromMessages(messages: UIMessage[]): Set<string> {
   return new Set(
     messages.flatMap((message) => {
-      if (message.role !== 'assistant') return [];
+      if (message.role !== "assistant") return [];
       const textContent = message.parts
-        .filter((part) => part.type === 'text')
-        .map((part) => part.text ?? '')
-        .join('');
+        .filter((part) => part.type === "text")
+        .map((part) => part.text ?? "")
+        .join("");
 
       const walletTxData = parseWalletTransactionRequired(textContent);
       return walletTxData ? [walletTxData.txId] : [];
@@ -138,30 +172,30 @@ function extractWalletTxIdsFromMessages(messages: UIMessage[]): Set<string> {
 }
 
 const API_URL = getPublicApiBaseUrl();
-const SHOW_CHAT_DEBUG = process.env.NEXT_PUBLIC_SHOW_CHAT_DEBUG === 'true';
+const SHOW_CHAT_DEBUG = process.env.NEXT_PUBLIC_SHOW_CHAT_DEBUG === "true";
 
 // Height of the bottom nav bar — input floats above it when keyboard is closed
 const NAV_HEIGHT = 148;
 const COMPOSER_GAP = 12;
-const CHAT_STORAGE_PREFIX = 'genie-chat-history';
-const CHAT_CONFIRM_STATE_SUFFIX = ':confirm-state';
+const CHAT_STORAGE_PREFIX = "genie-chat-history";
+const CHAT_CONFIRM_STATE_SUFFIX = ":confirm-state";
 
 const PLACEHOLDERS = [
-  'Go off.',
+  "Go off.",
   "What's the move?",
-  'Hit me with it.',
-  'Speak your truth.',
+  "Hit me with it.",
+  "Speak your truth.",
   "Let's cook.",
 ];
 
 export const ChatInterface = () => {
   const { data: session } = useSession();
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [canScroll, setCanScroll] = useState(false);
   const [inputBottom, setInputBottom] = useState(NAV_HEIGHT + COMPOSER_GAP);
   const [composerHeight, setComposerHeight] = useState(72);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const [lastSendDebug, setLastSendDebug] = useState<string>('idle');
+  const [lastSendDebug, setLastSendDebug] = useState<string>("idle");
   const [placeholder] = useState(
     () => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)],
   );
@@ -175,35 +209,47 @@ export const ChatInterface = () => {
   const permissionsRequested = useRef(false);
   const handledWalletTxIds = useRef<Set<string>>(new Set());
   const hydratedStorageKey = useRef<string | null>(null);
-  const [walletExecutionState, setWalletExecutionState] = useState<Record<string, 'pending' | 'success' | 'error'>>({});
-  const [walletExecutionError, setWalletExecutionError] = useState<Record<string, string>>({});
-  const [cancelledConfirmTxIds, setCancelledConfirmTxIds] = useState<string[]>([]);
+  const [walletExecutionState, setWalletExecutionState] = useState<
+    Record<string, "pending" | "success" | "error">
+  >({});
+  const [walletExecutionError, setWalletExecutionError] = useState<
+    Record<string, string>
+  >({});
+  const [cancelledConfirmTxIds, setCancelledConfirmTxIds] = useState<string[]>(
+    [],
+  );
   const [localYieldThinking, setLocalYieldThinking] = useState(false);
-  const chatStorageKey = session?.user?.id ? getChatStorageKey(session.user.id) : null;
-  const { balance, refetch: refetchBalance } = useBalance(session?.user?.walletAddress ?? '');
+  const chatStorageKey = session?.user?.id
+    ? getChatStorageKey(session.user.id)
+    : null;
+  const { balance, refetch: refetchBalance } = useBalance(
+    session?.user?.walletAddress ?? "",
+  );
   const numericBalance = balance ? parseFloat(balance) : null;
-  const demoVerified = isDemoVerified(session?.user?.id);
-  const chatSuggestedYieldAmount = numericBalance !== null && !Number.isNaN(numericBalance)
-    ? getSuggestedYieldDepositAmount(numericBalance, 0.2)
-    : '0.00';
+  const { isVerified: demoVerified } = useVerificationStatus(session?.user?.id);
+  const chatSuggestedYieldAmount =
+    numericBalance !== null && !Number.isNaN(numericBalance)
+      ? getSuggestedYieldDepositAmount(numericBalance, 0.2)
+      : "0.00";
 
   const transport = useMemo(
     () => new TextStreamChatTransport({ api: `${API_URL}/api/chat` }),
     [],
   );
 
-  const { messages, setMessages, sendMessage, status, error, regenerate } = useChat({
-    transport,
-    onError: (err) => {
-      console.error('[chat] useChat error:', err);
-    },
-    onFinish: ({ message }) => {
-      console.log('[chat] assistant message finished:', message);
-    },
-  });
+  const { messages, setMessages, sendMessage, status, error, regenerate } =
+    useChat({
+      transport,
+      onError: (err) => {
+        console.error("[chat] useChat error:", err);
+      },
+      onFinish: ({ message }) => {
+        console.log("[chat] assistant message finished:", message);
+      },
+    });
   const { poll } = useUserOperationReceipt({ client: worldChainReceiptClient });
 
-  const isThinking = status === 'submitted' || localYieldThinking;
+  const isThinking = status === "submitted" || localYieldThinking;
 
   useEffect(() => {
     return () => {
@@ -234,13 +280,17 @@ export const ChatInterface = () => {
 
     try {
       const persisted = window.sessionStorage.getItem(chatStorageKey);
-      const persistedConfirmState = window.sessionStorage.getItem(getConfirmStateStorageKey(chatStorageKey));
+      const persistedConfirmState = window.sessionStorage.getItem(
+        getConfirmStateStorageKey(chatStorageKey),
+      );
       if (persistedConfirmState) {
         const parsedConfirmState = JSON.parse(persistedConfirmState);
         if (isPersistedTxIdArray(parsedConfirmState)) {
           setCancelledConfirmTxIds(parsedConfirmState);
         } else {
-          window.sessionStorage.removeItem(getConfirmStateStorageKey(chatStorageKey));
+          window.sessionStorage.removeItem(
+            getConfirmStateStorageKey(chatStorageKey),
+          );
         }
       }
 
@@ -260,18 +310,22 @@ export const ChatInterface = () => {
       setMessages(parsed);
     } catch {
       window.sessionStorage.removeItem(chatStorageKey);
-      window.sessionStorage.removeItem(getConfirmStateStorageKey(chatStorageKey));
+      window.sessionStorage.removeItem(
+        getConfirmStateStorageKey(chatStorageKey),
+      );
       setMessages([]);
     }
   }, [chatStorageKey, setMessages]);
 
   useEffect(() => {
-    if (!chatStorageKey || hydratedStorageKey.current !== chatStorageKey) return;
+    if (!chatStorageKey || hydratedStorageKey.current !== chatStorageKey)
+      return;
     window.sessionStorage.setItem(chatStorageKey, JSON.stringify(messages));
   }, [chatStorageKey, messages]);
 
   useEffect(() => {
-    if (!chatStorageKey || hydratedStorageKey.current !== chatStorageKey) return;
+    if (!chatStorageKey || hydratedStorageKey.current !== chatStorageKey)
+      return;
     window.sessionStorage.setItem(
       getConfirmStateStorageKey(chatStorageKey),
       JSON.stringify(cancelledConfirmTxIds),
@@ -291,7 +345,11 @@ export const ChatInterface = () => {
         followUp?: string;
       };
 
-      if (parsed.userId !== session.user.id || !parsed.message || !parsed.followUp) {
+      if (
+        parsed.userId !== session.user.id ||
+        !parsed.message ||
+        !parsed.followUp
+      ) {
         window.sessionStorage.removeItem(HOME_CHAT_SEED_STORAGE_KEY);
         return;
       }
@@ -303,13 +361,13 @@ export const ChatInterface = () => {
         ...current,
         {
           id: crypto.randomUUID(),
-          role: 'assistant',
-          parts: [{ type: 'text', text: seededMessage }],
+          role: "assistant",
+          parts: [{ type: "text", text: seededMessage }],
         },
         {
           id: crypto.randomUUID(),
-          role: 'assistant',
-          parts: [{ type: 'text', text: seededFollowUp }],
+          role: "assistant",
+          parts: [{ type: "text", text: seededFollowUp }],
         },
       ]);
     } catch {
@@ -317,7 +375,7 @@ export const ChatInterface = () => {
     }
   }, [session?.user?.id, setMessages]);
 
-  const scrollChatToBottom = (behavior: ScrollBehavior = 'smooth') => {
+  const scrollChatToBottom = (behavior: ScrollBehavior = "smooth") => {
     const container = scrollRef.current;
     if (!container) return;
     container.scrollTo({
@@ -329,31 +387,55 @@ export const ChatInterface = () => {
   // Hide nav when keyboard is open
   useEffect(() => {
     if (keyboardOpen) {
-      document.documentElement.classList.add('keyboard-open');
+      document.documentElement.classList.add("keyboard-open");
     } else {
-      document.documentElement.classList.remove('keyboard-open');
+      document.documentElement.classList.remove("keyboard-open");
     }
     return () => {
-      document.documentElement.classList.remove('keyboard-open');
+      document.documentElement.classList.remove("keyboard-open");
     };
   }, [keyboardOpen]);
 
-  // Track keyboard height via visualViewport
+  // Track the keyboard via visualViewport and lift the composer above it.
+  //
+  // Two webview behaviours have to be handled with one formula:
+  //   - iOS Safari: the keyboard shrinks only the *visual* viewport; the layout
+  //     viewport (the containing block for position:fixed) stays full height.
+  //   - Android / World App (interactiveWidget: 'resizes-content'): the keyboard
+  //     shrinks the *layout* viewport too.
+  //
+  // `visibleBottomOffset` = distance from the bottom of the visible area to the
+  // bottom of the layout viewport. That is the keyboard height on iOS and ~0 on
+  // Chromium webviews — in both cases it's exactly how far to lift a fixed
+  // composer so it sits just above the keyboard. Keyboard *presence* is detected
+  // separately by comparing against the tallest viewport we've seen.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
+
+    let baselineHeight = vv.height;
+
     const update = () => {
-      const kbHeight = window.innerHeight - vv.height - vv.offsetTop;
-      const isOpen = kbHeight > 50;
+      baselineHeight = Math.max(baselineHeight, vv.height);
+
+      const layoutHeight = document.documentElement.clientHeight;
+      const visibleBottomOffset = Math.max(
+        0,
+        layoutHeight - (vv.offsetTop + vv.height),
+      );
+      const isOpen = baselineHeight - vv.height > 100;
+
       setKeyboardOpen(isOpen);
-      setInputBottom(isOpen ? kbHeight + COMPOSER_GAP : NAV_HEIGHT + COMPOSER_GAP);
+      setInputBottom(
+        isOpen ? visibleBottomOffset + COMPOSER_GAP : NAV_HEIGHT + COMPOSER_GAP,
+      );
+
       // When keyboard opens, keep the latest messages visible above the composer.
       if (isOpen) {
-        requestAnimationFrame(() => scrollChatToBottom('auto'));
-        setTimeout(() => scrollChatToBottom('auto'), 80);
-        setTimeout(() => scrollChatToBottom('smooth'), 180);
-      }
-      if (!isOpen) {
+        requestAnimationFrame(() => scrollChatToBottom("auto"));
+        setTimeout(() => scrollChatToBottom("auto"), 80);
+        setTimeout(() => scrollChatToBottom("smooth"), 180);
+      } else {
         const reset = () => {
           window.scrollTo(0, 0);
           document.body.scrollTop = 0;
@@ -363,12 +445,13 @@ export const ChatInterface = () => {
         setTimeout(reset, 300);
       }
     };
+
     update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
     return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
     };
   }, []);
 
@@ -384,10 +467,10 @@ export const ChatInterface = () => {
     if (content) {
       ro.observe(content);
     }
-    window.addEventListener('resize', check);
+    window.addEventListener("resize", check);
     return () => {
       ro.disconnect();
-      window.removeEventListener('resize', check);
+      window.removeEventListener("resize", check);
     };
   }, []);
 
@@ -402,33 +485,33 @@ export const ChatInterface = () => {
     updateComposerHeight();
     const ro = new ResizeObserver(updateComposerHeight);
     ro.observe(composer);
-    window.addEventListener('resize', updateComposerHeight);
+    window.addEventListener("resize", updateComposerHeight);
 
     return () => {
       ro.disconnect();
-      window.removeEventListener('resize', updateComposerHeight);
+      window.removeEventListener("resize", updateComposerHeight);
     };
   }, []);
 
   useEffect(() => {
-    scrollChatToBottom('smooth');
+    scrollChatToBottom("smooth");
   }, [messages, status]);
 
   useEffect(() => {
     if (!keyboardOpen) return;
-    scrollChatToBottom('smooth');
+    scrollChatToBottom("smooth");
   }, [keyboardOpen, composerHeight]);
 
   // Detect payment confirmation messages from agent and trigger MiniKit Pay
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg.role !== 'assistant') return;
+    if (lastMsg.role !== "assistant") return;
 
     const textContent = lastMsg.parts
-      ?.filter((p: { type: string }) => p.type === 'text')
-      .map((p: { type: string; text?: string }) => p.text ?? '')
-      .join('');
+      ?.filter((p: { type: string }) => p.type === "text")
+      .map((p: { type: string; text?: string }) => p.text ?? "")
+      .join("");
 
     if (!textContent) return;
 
@@ -437,29 +520,35 @@ export const ChatInterface = () => {
 
     try {
       const parsed = JSON.parse(jsonMatch[1]);
-      if (parsed.type === 'payment_confirmation' && parsed.to && parsed.amount) {
+      if (
+        parsed.type === "payment_confirmation" &&
+        parsed.to &&
+        parsed.amount
+      ) {
         triggerMiniKitPay({
           to: parsed.to,
           amountUsdc: parsed.amount,
           description: parsed.description ?? `Send ${parsed.amount} USDC`,
         }).then((result) => {
           if (result?.success) {
-            console.log('[minikit] payment success:', result.transactionId);
+            console.log("[minikit] payment success:", result.transactionId);
           }
         });
       }
-    } catch { /* not valid JSON — ignore */ }
+    } catch {
+      /* not valid JSON — ignore */
+    }
   }, [messages]);
 
   useEffect(() => {
     if (messages.length === 0 || !session?.user?.id) return;
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg.role !== 'assistant') return;
+    if (lastMsg.role !== "assistant") return;
 
     const textContent = lastMsg.parts
-      ?.filter((p: { type: string }) => p.type === 'text')
-      .map((p: { type: string; text?: string }) => p.text ?? '')
-      .join('');
+      ?.filter((p: { type: string }) => p.type === "text")
+      .map((p: { type: string; text?: string }) => p.text ?? "")
+      .join("");
 
     const walletTxData = parseWalletTransactionRequired(textContent);
     if (!walletTxData) return;
@@ -467,47 +556,59 @@ export const ChatInterface = () => {
     if (handledWalletTxIds.current.has(walletTxData.txId)) return;
 
     handledWalletTxIds.current.add(walletTxData.txId);
-    setWalletExecutionState((current) => ({ ...current, [walletTxData.txId]: 'pending' }));
+    setWalletExecutionState((current) => ({
+      ...current,
+      [walletTxData.txId]: "pending",
+    }));
 
     executeMiniKitTransactions(walletTxData.txPlan)
       .then(async ({ userOpHash }) => {
         const receipt = await poll(userOpHash);
         const finalHash = extractMiniKitTransactionHash(receipt) ?? userOpHash;
 
-        const finalizeRes = await fetch(getPublicApiUrl('/api/confirm'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const finalizeRes = await fetch(getPublicApiUrl("/api/confirm"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             txId: walletTxData.txId,
             userId: session.user.id,
             txHash: finalHash,
           }),
         });
-        
+
         const finalizeJson = await finalizeRes.json();
 
         if (!finalizeRes.ok && finalizeRes.status !== 409) {
-          throw new Error(finalizeJson.message ?? finalizeJson.error ?? 'Transfer failed');
+          throw new Error(
+            finalizeJson.message ?? finalizeJson.error ?? "Transfer failed",
+          );
         }
 
-        setWalletExecutionState((current) => ({ ...current, [walletTxData.txId]: 'success' }));
+        setWalletExecutionState((current) => ({
+          ...current,
+          [walletTxData.txId]: "success",
+        }));
       })
       .catch((err) => {
-        console.error('[chat] wallet transaction failed', err);
-        setWalletExecutionState((current) => ({ ...current, [walletTxData.txId]: 'error' }));
+        console.error("[chat] wallet transaction failed", err);
+        setWalletExecutionState((current) => ({
+          ...current,
+          [walletTxData.txId]: "error",
+        }));
         setWalletExecutionError((current) => ({
           ...current,
-          [walletTxData.txId]: err instanceof Error ? err.message : 'Transfer failed',
+          [walletTxData.txId]:
+            err instanceof Error ? err.message : "Transfer failed",
         }));
       });
   }, [messages, poll, session?.user?.id]);
 
   const handleSend = async () => {
-    if (!input.trim() || (status !== 'ready' && status !== 'error')) return;
+    if (!input.trim() || (status !== "ready" && status !== "error")) return;
     const text = input.trim();
-    setInput('');
+    setInput("");
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
     }
 
     const sessionHasMiniKitIdentity = Boolean(
@@ -516,51 +617,64 @@ export const ChatInterface = () => {
 
     if (!permissionsRequested.current && !sessionHasMiniKitIdentity) {
       permissionsRequested.current = true;
-      requestMiniKitPermissions().then((perms) => {
-        if (perms) console.log('[minikit] permissions granted:', perms);
-      }).catch((err) => {
-        console.warn('[minikit] permission request failed:', err);
-      });
+      requestMiniKitPermissions()
+        .then((perms) => {
+          if (perms) console.log("[minikit] permissions granted:", perms);
+        })
+        .catch((err) => {
+          console.warn("[minikit] permission request failed:", err);
+        });
     }
 
-    setLastSendDebug(`sending "${text}" to ${API_URL || 'same-origin'}/api/chat`);
+    setLastSendDebug(
+      `sending "${text}" to ${API_URL || "same-origin"}/api/chat`,
+    );
 
     if (!demoVerified && shouldRequireLoanVerification(text)) {
       setMessages((current) => [
         ...current,
         {
           id: crypto.randomUUID(),
-          role: 'user',
-          parts: [{ type: 'text', text }],
+          role: "user",
+          parts: [{ type: "text", text }],
         },
         {
           id: crypto.randomUUID(),
-          role: 'assistant',
-          parts: [{
-            type: 'text',
-            text: 'Verify with World ID in Profile before Genie can lend money or record new loans for you. Once you verify, I can help send the funds and track the debt together.',
-          }],
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Verify with World ID in Profile before Genie can lend money or record new loans for you. Once you verify, I can help send the funds and track the debt together.",
+            },
+          ],
         },
       ]);
       return;
     }
 
-    if (shouldOfferYieldShortcut(text) && numericBalance !== null && !Number.isNaN(numericBalance) && numericBalance > 0) {
+    if (
+      shouldOfferYieldShortcut(text) &&
+      numericBalance !== null &&
+      !Number.isNaN(numericBalance) &&
+      numericBalance > 0
+    ) {
       if (!demoVerified) {
         setMessages((current) => [
           ...current,
           {
             id: crypto.randomUUID(),
-            role: 'user',
-            parts: [{ type: 'text', text }],
+            role: "user",
+            parts: [{ type: "text", text }],
           },
           {
             id: crypto.randomUUID(),
-            role: 'assistant',
-            parts: [{
-              type: 'text',
-              text: 'Verify with World ID in Profile before Genie can move money into yield strategies. Once you verify, I can help open the deposit transaction for you.',
-            }],
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: "Verify with World ID in Profile before Genie can move money into yield strategies. Once you verify, I can help open the deposit transaction for you.",
+              },
+            ],
           },
         ]);
         return;
@@ -577,8 +691,8 @@ export const ChatInterface = () => {
         ...current,
         {
           id: crypto.randomUUID(),
-          role: 'user',
-          parts: [{ type: 'text', text }],
+          role: "user",
+          parts: [{ type: "text", text }],
         },
       ]);
       setLocalYieldThinking(true);
@@ -588,8 +702,8 @@ export const ChatInterface = () => {
           ...current,
           {
             id: crypto.randomUUID(),
-            role: 'assistant',
-            parts: [{ type: 'text', text: recommendationText }],
+            role: "assistant",
+            parts: [{ type: "text", text: recommendationText }],
           },
         ]);
         setLocalYieldThinking(false);
@@ -604,8 +718,9 @@ export const ChatInterface = () => {
         )
           .then(async ({ userOpHash }) => {
             const receipt = await poll(userOpHash);
-            const finalHash = extractMiniKitTransactionHash(receipt) ?? userOpHash;
-            console.log('[chat][yield] deposit completed', {
+            const finalHash =
+              extractMiniKitTransactionHash(receipt) ?? userOpHash;
+            console.log("[chat][yield] deposit completed", {
               userOpHash,
               finalHash,
               amountUsd: chatSuggestedYieldAmount,
@@ -615,31 +730,35 @@ export const ChatInterface = () => {
               ...current,
               {
                 id: crypto.randomUUID(),
-                role: 'assistant',
-                parts: [{
-                  type: 'text',
-                  text: `Yield deposit submitted for $${chatSuggestedYieldAmount} USDC.`,
-                }],
+                role: "assistant",
+                parts: [
+                  {
+                    type: "text",
+                    text: `Yield deposit submitted for $${chatSuggestedYieldAmount} USDC.`,
+                  },
+                ],
               },
             ]);
           })
           .catch((err) => {
-            console.error('[chat][yield] deposit failed', err);
-            const errMessage = err instanceof Error ? err.message : '';
+            console.error("[chat][yield] deposit failed", err);
+            const errMessage = err instanceof Error ? err.message : "";
             const didUserReject = /user[_\s-]?rejected/i.test(errMessage);
             setMessages((current) => [
               ...current,
               {
                 id: crypto.randomUUID(),
-                role: 'assistant',
-                parts: [{
-                  type: 'text',
-                  text: didUserReject
-                    ? getYieldRejectionMessage()
-                    : err instanceof Error
-                      ? `I couldn’t open the yield transaction: ${err.message}`
-                      : 'I couldn’t open the yield transaction.',
-                }],
+                role: "assistant",
+                parts: [
+                  {
+                    type: "text",
+                    text: didUserReject
+                      ? getYieldRejectionMessage()
+                      : err instanceof Error
+                        ? `I couldn’t open the yield transaction: ${err.message}`
+                        : "I couldn’t open the yield transaction.",
+                  },
+                ],
               },
             ]);
           });
@@ -658,14 +777,17 @@ export const ChatInterface = () => {
     );
 
     if (MiniKit.isInstalled()) {
-      MiniKit.sendHapticFeedback({ hapticsType: 'impact', style: 'medium' }).catch((err) => {
-        console.warn('[minikit] haptic feedback failed:', err);
+      MiniKit.sendHapticFeedback({
+        hapticsType: "impact",
+        style: "medium",
+      }).catch((err) => {
+        console.warn("[minikit] haptic feedback failed:", err);
       });
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -674,7 +796,7 @@ export const ChatInterface = () => {
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     const el = e.target;
-    el.style.height = 'auto';
+    el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 104)}px`;
   };
 
@@ -686,32 +808,34 @@ export const ChatInterface = () => {
         className="flex-1 min-h-0 overscroll-contain pt-6 px-6"
         style={{
           paddingBottom: `${inputBottom + composerHeight + 24}px`,
-          overflowY: 'auto',
-          touchAction: canScroll ? 'pan-y' : 'none',
+          overflowY: "auto",
+          touchAction: canScroll ? "pan-y" : "none",
         }}
       >
         <div ref={contentRef} className="flex flex-col gap-10 max-w-md mx-auto">
           {messages.length === 0 && <EmptyState />}
           {messages.map((message) =>
-            message.role === 'user' ? (
+            message.role === "user" ? (
               <UserMessage key={message.id} parts={message.parts} />
             ) : (
               <AiMessageBubble
                 key={message.id}
                 parts={message.parts}
-                userId={session?.user?.id ?? ''}
+                userId={session?.user?.id ?? ""}
                 cancelledConfirmTxIds={cancelledConfirmTxIds}
                 walletExecutionState={walletExecutionState}
                 walletExecutionError={walletExecutionError}
                 onConfirmCancel={(txId: string) => {
-                  setCancelledConfirmTxIds((current) => (
-                    current.includes(txId) ? current : [...current, txId]
-                  ));
+                  setCancelledConfirmTxIds((current) =>
+                    current.includes(txId) ? current : [...current, txId],
+                  );
                 }}
                 onContactSelect={(contact: ContactData) => {
-                  if (status !== 'ready') return;
+                  if (status !== "ready") return;
                   sendMessage(
-                    { text: `Use contact ${contact.name} at wallet ${contact.walletAddress}` },
+                    {
+                      text: `Use contact ${contact.name} at wallet ${contact.walletAddress}`,
+                    },
                     {
                       body: {
                         userId: session?.user?.id,
@@ -724,7 +848,7 @@ export const ChatInterface = () => {
             ),
           )}
           {isThinking && <ThinkingIndicator />}
-          {error && status === 'error' && (
+          {error && status === "error" && (
             <ErrorMessage onRetry={() => regenerate()} />
           )}
           <div ref={messagesEndRef} />
@@ -737,32 +861,36 @@ export const ChatInterface = () => {
         className="fixed left-0 w-full px-6 z-50 transition-[bottom] duration-100"
         style={{
           bottom: inputBottom,
-          touchAction: 'none',
-          paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
+          touchAction: "none",
+          paddingBottom: "max(env(safe-area-inset-bottom), 8px)",
         }}
       >
         <div className="max-w-md mx-auto">
           {SHOW_CHAT_DEBUG && (
             <div className="mb-2 rounded-lg bg-black/80 px-3 py-2 text-[10px] leading-snug text-white/70 font-mono break-words">
               <div>chat status: {status}</div>
-              <div>api: {API_URL || 'same-origin'}/api/chat</div>
-              <div>session user: {session?.user?.id ?? 'none'}</div>
+              <div>api: {API_URL || "same-origin"}/api/chat</div>
+              <div>session user: {session?.user?.id ?? "none"}</div>
               <div>messages: {messages.length}</div>
               <div>
-                last parts:{' '}
-                {messages.at(-1)?.parts?.map((part) => part.type).join(', ') ?? 'none'}
+                last parts:{" "}
+                {messages
+                  .at(-1)
+                  ?.parts?.map((part) => part.type)
+                  .join(", ") ?? "none"}
               </div>
               <div>
-                roles:{' '}
+                roles:{" "}
                 {messages
                   .map((message) => {
-                    const textLength = message.parts
-                      ?.filter((part) => part.type === 'text')
-                      .map((part) => part.text ?? '')
-                      .join('').length ?? 0;
+                    const textLength =
+                      message.parts
+                        ?.filter((part) => part.type === "text")
+                        .map((part) => part.text ?? "")
+                        .join("").length ?? 0;
                     return `${message.role}:${textLength}`;
                   })
-                  .join(' | ') || 'none'}
+                  .join(" | ") || "none"}
               </div>
               <div>last send: {lastSendDebug}</div>
               {error && <div>error: {error.message}</div>}
@@ -776,14 +904,14 @@ export const ChatInterface = () => {
               onChange={handleTextareaInput}
               onFocus={() => {
                 requestAnimationFrame(() => {
-                  scrollChatToBottom('auto');
+                  scrollChatToBottom("auto");
                 });
-                setTimeout(() => scrollChatToBottom('smooth'), 120);
+                setTimeout(() => scrollChatToBottom("smooth"), 120);
               }}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               className="flex-1 bg-transparent border-none focus:ring-0 px-4 py-2 placeholder:text-white/30 text-white outline-none resize-none overflow-y-auto leading-relaxed"
-              style={{ maxHeight: '104px', fontSize: '16px' }}
+              style={{ maxHeight: "104px", fontSize: "16px" }}
             />
             <button
               onClick={handleSend}
@@ -807,16 +935,16 @@ function EmptyState() {
           src="/genie.png"
           alt="Genie"
           className="w-full h-full object-contain"
-          style={{ mixBlendMode: 'screen' }}
+          style={{ mixBlendMode: "screen" }}
         />
       </div>
       <div className="relative flex-1 min-w-0 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white break-words">
         <span
           className="absolute bottom-5 -left-[9px] w-0 h-0"
           style={{
-            borderTop: '8px solid transparent',
-            borderBottom: '8px solid transparent',
-            borderRight: '10px solid #171717',
+            borderTop: "8px solid transparent",
+            borderBottom: "8px solid transparent",
+            borderRight: "10px solid #171717",
           }}
         />
         <div className="flex items-center gap-2 mb-3">
@@ -830,7 +958,9 @@ function EmptyState() {
             Genie
           </span>
         </div>
-        <p className="text-sm leading-relaxed">Hi, I&apos;m Genie, your personal accountant.</p>
+        <p className="text-sm leading-relaxed">
+          Hi, I&apos;m Genie, your personal accountant.
+        </p>
       </div>
     </div>
   );
@@ -842,18 +972,18 @@ function UserMessage({
   parts: Array<{ type: string; text?: string }>;
 }) {
   const text = parts
-    .filter((p) => p.type === 'text')
-    .map((p) => p.text ?? '')
-    .join('');
+    .filter((p) => p.type === "text")
+    .map((p) => p.text ?? "")
+    .join("");
   return (
     <div className="flex justify-end pl-12">
       <div className="relative bg-surface border border-white/10 p-4 rounded-t-2xl rounded-bl-2xl text-white break-words min-w-0">
         <span
           className="absolute bottom-4 -right-[9px] w-0 h-0"
           style={{
-            borderTop: '8px solid transparent',
-            borderBottom: '8px solid transparent',
-            borderLeft: '10px solid #171717',
+            borderTop: "8px solid transparent",
+            borderBottom: "8px solid transparent",
+            borderLeft: "10px solid #171717",
           }}
         />
         <p className="text-sm font-medium">{text}</p>
@@ -875,23 +1005,25 @@ function AiMessageBubble({
   onContactSelect: (contact: ContactData) => void;
   userId: string;
   cancelledConfirmTxIds: string[];
-  walletExecutionState: Record<string, 'pending' | 'success' | 'error'>;
+  walletExecutionState: Record<string, "pending" | "success" | "error">;
   walletExecutionError: Record<string, string>;
   onConfirmCancel: (txId: string) => void;
 }) {
   const textContent = parts
-    .filter((p) => p.type === 'text')
-    .map((p) => p.text ?? '')
-    .join('');
+    .filter((p) => p.type === "text")
+    .map((p) => p.text ?? "")
+    .join("");
 
   const contactData = parseContactList(textContent);
   const confirmData = parseConfirmCard(textContent);
   const walletTxData = parseWalletTransactionRequired(textContent);
-  const transactionPayloadPending = !confirmData && !walletTxData && hasPendingTransactionPayload(textContent);
+  const transactionPayloadPending =
+    !confirmData && !walletTxData && hasPendingTransactionPayload(textContent);
 
-  const markdownText = (contactData || confirmData || walletTxData || transactionPayloadPending)
-    ? stripStructuredJson(textContent)
-    : textContent;
+  const markdownText =
+    contactData || confirmData || walletTxData || transactionPayloadPending
+      ? stripStructuredJson(textContent)
+      : textContent;
 
   return (
     <div className="flex items-end gap-2">
@@ -900,16 +1032,16 @@ function AiMessageBubble({
           src="/genie.png"
           alt="Genie"
           className="w-full h-full object-contain"
-          style={{ mixBlendMode: 'screen' }}
+          style={{ mixBlendMode: "screen" }}
         />
       </div>
       <div className="relative flex-1 min-w-0 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white break-words">
         <span
           className="absolute bottom-5 -left-[9px] w-0 h-0"
           style={{
-            borderTop: '8px solid transparent',
-            borderBottom: '8px solid transparent',
-            borderRight: '10px solid #171717',
+            borderTop: "8px solid transparent",
+            borderBottom: "8px solid transparent",
+            borderRight: "10px solid #171717",
           }}
         />
         <div className="flex items-center gap-2 mb-3">
@@ -929,36 +1061,55 @@ function AiMessageBubble({
               remarkPlugins={[remarkGfm]}
               components={{
                 p: ({ children }) => (
-                  <p className="text-sm leading-relaxed mb-2 last:mb-0">{children}</p>
+                  <p className="text-sm leading-relaxed mb-2 last:mb-0">
+                    {children}
+                  </p>
                 ),
                 strong: ({ children }) => (
                   <strong className="font-bold text-white">{children}</strong>
                 ),
                 code: ({ children }) => (
-                  <code className="bg-background px-1 text-accent text-xs font-mono">{children}</code>
+                  <code className="bg-background px-1 text-accent text-xs font-mono">
+                    {children}
+                  </code>
                 ),
                 pre: ({ children }) => (
-                  <pre className="bg-background p-3 text-xs font-mono overflow-x-auto text-white/80 my-2">{children}</pre>
+                  <pre className="bg-background p-3 text-xs font-mono overflow-x-auto text-white/80 my-2">
+                    {children}
+                  </pre>
                 ),
                 ul: ({ children }) => (
-                  <ul className="list-disc list-inside text-sm space-y-1 my-2">{children}</ul>
+                  <ul className="list-disc list-inside text-sm space-y-1 my-2">
+                    {children}
+                  </ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="list-decimal list-inside text-sm space-y-1 my-2">{children}</ol>
+                  <ol className="list-decimal list-inside text-sm space-y-1 my-2">
+                    {children}
+                  </ol>
                 ),
                 a: ({ href, children }) => (
-                  <a href={href} className="text-accent underline" target="_blank" rel="noopener noreferrer">{children}</a>
+                  <a
+                    href={href}
+                    className="text-accent underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {children}
+                  </a>
                 ),
               }}
             >
               {markdownText}
             </ReactMarkdown>
           )}
-          {contactData && <ContactList data={contactData} onSelect={onContactSelect} />}
+          {contactData && (
+            <ContactList data={contactData} onSelect={onContactSelect} />
+          )}
           {walletTxData && !walletTxData.requiresExplicitConfirmation && (
             <WalletExecutionCard
               data={walletTxData}
-              state={walletExecutionState[walletTxData.txId] ?? 'pending'}
+              state={walletExecutionState[walletTxData.txId] ?? "pending"}
               error={walletExecutionError[walletTxData.txId]}
             />
           )}
@@ -969,7 +1120,11 @@ function AiMessageBubble({
             <ConfirmCard
               data={confirmData}
               userId={userId}
-              initialState={cancelledConfirmTxIds.includes(confirmData.txId) ? 'cancelled' : 'idle'}
+              initialState={
+                cancelledConfirmTxIds.includes(confirmData.txId)
+                  ? "cancelled"
+                  : "idle"
+              }
               onCancel={() => onConfirmCancel(confirmData.txId)}
             />
           )}
@@ -979,7 +1134,9 @@ function AiMessageBubble({
   );
 }
 
-function parseWalletTransactionRequired(text: string): WalletTransactionRequiredResponse | null {
+function parseWalletTransactionRequired(
+  text: string,
+): WalletTransactionRequiredResponse | null {
   const matches = text.matchAll(/```json\s*\n([\s\S]*?)\n```/g);
   for (const match of matches) {
     try {
@@ -999,7 +1156,9 @@ function PendingTransactionCard() {
   return (
     <div className="mt-3 bg-background border border-white/10 p-4 rounded-xl">
       <div className="flex items-center gap-2 mb-2">
-        <span className="material-symbols-outlined text-accent text-base">account_balance_wallet</span>
+        <span className="material-symbols-outlined text-accent text-base">
+          account_balance_wallet
+        </span>
         <p className="text-sm font-bold text-white">Preparing transaction...</p>
       </div>
       <div className="flex gap-1.5 items-center h-5">
@@ -1017,33 +1176,44 @@ function WalletExecutionCard({
   error,
 }: {
   data: WalletTransactionRequiredResponse;
-  state: 'pending' | 'success' | 'error';
+  state: "pending" | "success" | "error";
   error?: string;
 }) {
-  if (state === 'success') {
+  if (state === "success") {
     return (
       <div className="mt-3 bg-background border border-white/10 p-4 rounded-xl">
         <div className="flex items-center gap-2 mb-2">
-          <span className="material-symbols-outlined text-accent text-base" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-          <p className="text-sm font-bold text-white">Sent ${data.amount} USDC</p>
+          <span
+            className="material-symbols-outlined text-accent text-base"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            check_circle
+          </span>
+          <p className="text-sm font-bold text-white">
+            Sent ${data.amount} USDC
+          </p>
         </div>
         <p className="text-xs text-white/45">Wallet transaction completed.</p>
       </div>
     );
   }
 
-  if (state === 'error') {
+  if (state === "error") {
     return (
       <div className="mt-3 bg-background border border-red-500/20 p-4 rounded-xl">
-        <p className="text-sm font-bold text-red-400 mb-1">Wallet transaction failed</p>
-        <p className="text-xs text-white/60">{error ?? 'Transfer failed'}</p>
+        <p className="text-sm font-bold text-red-400 mb-1">
+          Wallet transaction failed
+        </p>
+        <p className="text-xs text-white/60">{error ?? "Transfer failed"}</p>
       </div>
     );
   }
 
   return (
     <div className="mt-3 bg-background border border-white/10 p-4 rounded-xl">
-      <p className="text-sm font-bold text-white mb-1">Sending from your vault...</p>
+      <p className="text-sm font-bold text-white mb-1">
+        Sending from your vault...
+      </p>
       <p className="text-xs text-white/50">
         Genie is sending ${data.amount} USDC on your behalf.
       </p>
@@ -1059,23 +1229,29 @@ function ErrorMessage({ onRetry }: { onRetry: () => void }) {
           src="/genie.png"
           alt="Genie"
           className="w-full h-full object-contain"
-          style={{ mixBlendMode: 'screen' }}
+          style={{ mixBlendMode: "screen" }}
         />
       </div>
       <div className="relative flex-1 min-w-0 bg-surface p-5 rounded-t-2xl rounded-br-2xl text-white border border-red-500/30 break-words">
         <span
           className="absolute bottom-5 -left-[9px] w-0 h-0"
           style={{
-            borderTop: '8px solid transparent',
-            borderBottom: '8px solid transparent',
-            borderRight: '10px solid #171717',
+            borderTop: "8px solid transparent",
+            borderBottom: "8px solid transparent",
+            borderRight: "10px solid #171717",
           }}
         />
         <div className="flex items-center gap-2 mb-3">
-          <span className="material-symbols-outlined text-red-400 text-lg">error</span>
-          <span className="font-headline text-[10px] uppercase tracking-widest text-red-400 font-bold">Error</span>
+          <span className="material-symbols-outlined text-red-400 text-lg">
+            error
+          </span>
+          <span className="font-headline text-[10px] uppercase tracking-widest text-red-400 font-bold">
+            Error
+          </span>
         </div>
-        <p className="text-sm text-white/70 mb-3">Something went wrong. Please try again.</p>
+        <p className="text-sm text-white/70 mb-3">
+          Something went wrong. Please try again.
+        </p>
         <button
           onClick={onRetry}
           className="px-4 py-2 bg-accent text-black text-xs font-bold uppercase tracking-widest active:scale-95 transition-transform"

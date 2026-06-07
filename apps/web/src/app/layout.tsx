@@ -1,12 +1,29 @@
 import { auth } from '@/auth';
 import ClientProviders from '@/providers';
 import '@worldcoin/mini-apps-ui-kit-react/styles.css';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Genie',
   description: 'Your personal finance agent',
+};
+
+/**
+ * `interactiveWidget: 'resizes-content'` makes the on-screen keyboard shrink the
+ * layout viewport (not just the visual viewport) on Chromium-based webviews like
+ * World App on Android — so the chat composer lifts above the keyboard instead of
+ * hiding behind it. iOS Safari ignores this and is handled via visualViewport in
+ * ChatInterface. `viewportFit: 'cover'` lets us use safe-area insets.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+  themeColor: '#000000',
 };
 
 export default async function RootLayout({

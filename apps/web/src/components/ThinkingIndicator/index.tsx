@@ -30,10 +30,13 @@ export const ThinkingIndicator = () => (
           Genie
         </span>
       </div>
-      <div className="flex gap-1.5 items-center h-5">
-        <span className="w-2 h-2 bg-accent/60 rounded-full animate-bounce [animation-delay:0ms]" />
-        <span className="w-2 h-2 bg-accent/60 rounded-full animate-bounce [animation-delay:150ms]" />
-        <span className="w-2 h-2 bg-accent/60 rounded-full animate-bounce [animation-delay:300ms]" />
+      <div className="flex items-center gap-2.5 h-5">
+        <div className="flex gap-1.5 items-center">
+          <span className="w-2 h-2 bg-accent/60 rounded-full animate-bounce [animation-delay:0ms]" />
+          <span className="w-2 h-2 bg-accent/60 rounded-full animate-bounce [animation-delay:150ms]" />
+          <span className="w-2 h-2 bg-accent/60 rounded-full animate-bounce [animation-delay:300ms]" />
+        </div>
+        <span className="genie-thinking-text text-sm font-medium">Genie is thinking</span>
       </div>
     </div>
   </div>
