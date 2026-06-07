@@ -1043,9 +1043,9 @@ function WalletExecutionCard({
 
   return (
     <div className="mt-3 bg-background border border-white/10 p-4 rounded-xl">
-      <p className="text-sm font-bold text-white mb-1">Opening World App wallet...</p>
+      <p className="text-sm font-bold text-white mb-1">Sending from your vault...</p>
       <p className="text-xs text-white/50">
-        Approve the bundled Permit2 approval and transfer for ${data.amount} USDC.
+        Genie is sending ${data.amount} USDC on your behalf.
       </p>
     </div>
   );

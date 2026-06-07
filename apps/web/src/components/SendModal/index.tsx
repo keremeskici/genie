@@ -2,23 +2,12 @@
 
 import { ConfirmCard, type ConfirmCardData } from '@/components/ConfirmCard';
 import { getPublicApiUrl } from '@/lib/backend-url';
-import {
-  executeMiniKitTransactions,
-  extractMiniKitTransactionHash,
-  isWalletTransactionRequiredResponse,
-  worldChainReceiptClient,
-} from '@/lib/minikit';
-import { useUserOperationReceipt } from '@worldcoin/minikit-react';
 import { useEffect, useState } from 'react';
 
-type ChainOption = 'World Chain' | 'Base' | 'Arbitrum' | 'Ethereum' | 'Optimism';
+type ChainOption = 'World Chain';
 
 const CHAIN_OPTIONS: { value: ChainOption; label: string }[] = [
   { value: 'World Chain', label: 'World Chain (instant)' },
-  { value: 'Base', label: 'Base (~15 min)' },
-  { value: 'Arbitrum', label: 'Arbitrum (~15 min)' },
-  { value: 'Ethereum', label: 'Ethereum (~15 min)' },
-  { value: 'Optimism', label: 'Optimism (~15 min)' },
 ];
 
 interface SendModalProps {
@@ -35,7 +24,6 @@ export function SendModal({ onClose, userId, refetchBalance }: SendModalProps) {
   const [selectedChain, setSelectedChain] = useState<ChainOption>('World Chain');
   const [confirmData, setConfirmData] = useState<ConfirmCardData | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const { poll, isLoading } = useUserOperationReceipt({ client: worldChainReceiptClient });
 
   useEffect(() => {
     const t = requestAnimationFrame(() => setVisible(true));
@@ -81,39 +69,18 @@ export function SendModal({ onClose, userId, refetchBalance }: SendModalProps) {
         return;
       }
 
-      if (isWalletTransactionRequiredResponse(json)) {
-        const { userOpHash } = await executeMiniKitTransactions(json.txPlan);
-        const receipt = await poll(userOpHash);
-        const finalHash = extractMiniKitTransactionHash(receipt) ?? userOpHash;
-
-        const finalizeRes = await fetch(getPublicApiUrl('/api/confirm'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ txId: json.txId, userId, txHash: finalHash }),
-        });
-        const finalizeJson = await finalizeRes.json();
-
-        if (!finalizeRes.ok && finalizeRes.status !== 409) {
-          setErrorMessage(finalizeJson.message ?? finalizeJson.error ?? 'Transaction failed. Try again.');
-          setStatus('error');
-          setTimeout(() => setStatus('idle'), 2500);
-          return;
-        }
-
+      if (json.type === 'transfer_executed') {
+        // Custodial: backend already executed on-chain (no wallet popup).
         setStatus('success');
         refetchBalance?.();
         setTimeout(handleClose, 1500);
-      } else if (json.type === 'transfer_complete') {
-        setStatus('success');
-        refetchBalance?.();
-        setTimeout(handleClose, 1500);
-      } else if (json.type === 'bridge_initiated') {
-        setStatus('success');
-        refetchBalance?.();
-        setTimeout(handleClose, 2000);
       } else if (json.type === 'confirmation_required') {
         setConfirmData(json as ConfirmCardData);
         setStatus('idle');
+      } else {
+        setErrorMessage(json.message ?? json.error ?? 'Transaction failed. Try again.');
+        setStatus('error');
+        setTimeout(() => setStatus('idle'), 2500);
       }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Transaction failed. Try again.');
@@ -122,7 +89,7 @@ export function SendModal({ onClose, userId, refetchBalance }: SendModalProps) {
     }
   };
 
-  const canSend = recipient.trim().length > 0 && parseFloat(amount) > 0 && status === 'idle' && !isLoading;
+  const canSend = recipient.trim().length > 0 && parseFloat(amount) > 0 && status === 'idle';
 
   return (
     <div
@@ -249,21 +216,14 @@ export function SendModal({ onClose, userId, refetchBalance }: SendModalProps) {
               </div>
             </div>
 
-            {selectedChain === 'World Chain' && (
-              <p className="text-[11px] text-white/45 leading-relaxed">
-                World Chain sends now open a wallet transaction prompt for the bundled Permit2 approval and transfer.
-              </p>
-            )}
+            <p className="text-[11px] text-white/45 leading-relaxed">
+              Genie sends this from your vault on your behalf — no wallet popup.
+            </p>
 
             {/* Status message */}
-            {status === 'success' && selectedChain === 'World Chain' && (
+            {status === 'success' && (
               <p className="text-xs text-accent text-center font-headline font-bold uppercase tracking-widest">
                 Sent successfully!
-              </p>
-            )}
-            {status === 'success' && selectedChain !== 'World Chain' && (
-              <p className="text-xs text-accent text-center font-headline font-bold uppercase tracking-widest">
-                Bridge initiated! ~15 min to arrive.
               </p>
             )}
             {status === 'error' && (

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, numeric, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -6,7 +6,7 @@ export const users = pgTable('users', {
   worldId: text('world_id'),
   displayName: text('display_name').notNull(),
   autoApproveUsd: numeric('auto_approve_usd', { precision: 10, scale: 2 }).notNull().default('25'),
-  memoryRootHash: text('memory_root_hash'),
+  memory: jsonb('memory'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 

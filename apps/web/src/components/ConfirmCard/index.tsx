@@ -1,13 +1,6 @@
 'use client';
 import { getPublicApiUrl } from '@/lib/backend-url';
 import { useEffect, useState } from 'react';
-import {
-  executeMiniKitTransactions,
-  extractMiniKitTransactionHash,
-  isWalletTransactionRequiredResponse,
-  worldChainReceiptClient,
-} from '@/lib/minikit';
-import { useUserOperationReceipt } from '@worldcoin/minikit-react';
 
 export interface ConfirmCardData {
   type: 'confirmation_required';
@@ -45,7 +38,6 @@ export const ConfirmCard: React.FC<{
   const [secondsLeft, setSecondsLeft] = useState(data.expiresInMinutes * 60);
   const [txHash, setTxHash] = useState('');
   const [error, setError] = useState('');
-  const { poll, isLoading } = useUserOperationReceipt({ client: worldChainReceiptClient });
 
   useEffect(() => {
     if (state !== 'idle') return;
@@ -63,54 +55,26 @@ export const ConfirmCard: React.FC<{
   const handleConfirm = async () => {
     setState('loading');
     try {
-      const prepareRes = await fetch(getPublicApiUrl('/api/confirm'), {
+      // Custodial: confirming executes the transfer server-side (no wallet signature).
+      const res = await fetch(getPublicApiUrl('/api/confirm'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ txId: data.txId, userId }),
       });
 
-      const prepareJson = await prepareRes.json();
-      if (prepareRes.status === 409) {
+      const json = await res.json();
+
+      if (res.ok || res.status === 409) {
         setState('confirmed');
-        setTxHash(prepareJson.txHash ?? '');
+        setTxHash(json.txHash ?? '');
         return;
       }
-      if (prepareRes.status === 410) {
-        setState('expired');
-        return;
-      }
-      if (!prepareRes.ok) {
-        setError(prepareJson.message ?? prepareJson.error ?? 'Transfer failed');
-        setState('error');
-        return;
-      }
-
-      if (!isWalletTransactionRequiredResponse(prepareJson)) {
-        throw new Error('Backend did not return a wallet transaction plan');
-      }
-
-      const { userOpHash } = await executeMiniKitTransactions(prepareJson.txPlan);
-      const receipt = await poll(userOpHash);
-      const finalHash = extractMiniKitTransactionHash(receipt) ?? userOpHash;
-
-      const finalizeRes = await fetch(getPublicApiUrl('/api/confirm'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txId: data.txId, userId, txHash: finalHash }),
-      });
-      const finalizeJson = await finalizeRes.json();
-
-      if (finalizeRes.ok || finalizeRes.status === 409) {
-        setState('confirmed');
-        setTxHash(finalizeJson.txHash ?? finalHash);
-        return;
-      }
-      if (finalizeRes.status === 410) {
+      if (res.status === 410) {
         setState('expired');
         return;
       }
 
-      setError(finalizeJson.message ?? finalizeJson.error ?? 'Transfer failed');
+      setError(json.message ?? json.error ?? 'Transfer failed');
       setState('error');
     } catch (err) {
       console.error('[ConfirmCard] confirm failed', err);
@@ -144,7 +108,7 @@ export const ConfirmCard: React.FC<{
       {/* Recipient */}
       <p className="text-sm text-white/60 mb-4">To: {truncateAddress(displayAddr)}</p>
       <p className="text-[11px] text-white/40 mb-4 leading-relaxed">
-        Confirming will open a World App wallet transaction for this exact amount.
+        Genie will send this from your vault on your behalf — no wallet popup.
       </p>
 
       {/* State-dependent rendering */}
@@ -154,7 +118,6 @@ export const ConfirmCard: React.FC<{
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={handleConfirm}
-              disabled={isLoading}
               className="min-w-0 bg-accent text-black px-3 py-2.5 text-sm font-bold uppercase tracking-widest rounded-lg"
             >
               Confirm
@@ -212,7 +175,6 @@ export const ConfirmCard: React.FC<{
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={handleConfirm}
-              disabled={isLoading}
               className="min-w-0 bg-accent text-black px-3 py-2.5 text-sm font-bold uppercase tracking-widest rounded-lg"
             >
               Retry

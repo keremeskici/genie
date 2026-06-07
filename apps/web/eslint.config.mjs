@@ -24,6 +24,11 @@ const eslintConfig = [
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
       'react/prop-types': 'off',
+      // Allow intentional underscore-prefixed unused vars/args (e.g. placeholder params).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
     },
   },
 ];

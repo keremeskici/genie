@@ -119,13 +119,6 @@ export async function triggerWalletSign(nonce?: string): Promise<{
 
 export type WalletTransactionPlan = {
   chainId: number;
-  permit2: {
-    address: `0x${string}`;
-    token: `0x${string}`;
-    spender: `0x${string}`;
-    amount: string;
-    expiration: number;
-  };
   transactions: Array<{
     to: `0x${string}`;
     data: `0x${string}`;

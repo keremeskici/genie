@@ -1,20 +1,15 @@
-export function getBackendApiUrl(): string | null {
-  const raw = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
-  if (!raw) return null;
-
-  const trimmed = raw.replace(/\/$/, '');
-  return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
-}
+/**
+ * Same-origin API URL helpers.
+ *
+ * The backend now lives inside this Next.js app (single Vercel deployment), so every
+ * `/api/...` endpoint is served from the same origin. These helpers return relative
+ * paths; there is no separate backend base URL anymore.
+ */
 
 export function getPublicApiBaseUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_API_URL;
-  if (!raw) return '';
-
-  const trimmed = raw.replace(/\/$/, '');
-  return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+  return '';
 }
 
 export function getPublicApiUrl(path: string): string {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${getPublicApiBaseUrl()}${normalizedPath}`;
+  return path.startsWith('/') ? path : `/${path}`;
 }

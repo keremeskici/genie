@@ -1,6 +1,8 @@
 import { auth } from '@/auth';
-import { getBackendApiUrl } from '@/lib/backend-url';
+import { markVerified } from '@/lib/server/users';
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
 
 interface IRequestPayload {
   payload: Record<string, unknown>;
@@ -34,29 +36,21 @@ export async function POST(req: NextRequest) {
   const verifyRes = (await response.json()) as IVerifyResponse;
 
   if (verifyRes.success) {
-    // Persist verification to Genie backend (Phase 3 endpoint)
-    const apiUrl = getBackendApiUrl();
-    if (apiUrl) {
-      try {
-        // Get userId from server-side session via NextAuth v5 auth()
-        // session.user.id is the wallet address — the backend resolveUserId() handles provisioning
-        const session = await auth();
-        const userId = session?.user?.id;
+    // Persist verification directly (same-app DB call — D-03)
+    try {
+      // Get userId from server-side session via NextAuth v5 auth()
+      // session.user.id is the wallet address — markVerified() resolves/provisions it
+      const session = await auth();
+      const userId = session?.user?.id;
+      const nullifierHash = (payload as Record<string, unknown>).nullifier_hash;
 
-        // D-02: BFF already validated with World ID Cloud API — send only slim payload to backend
-        await fetch(`${apiUrl}/api/verify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            nullifier_hash: (payload as Record<string, unknown>).nullifier_hash,
-          }),
-        });
-        console.log('[verify-proof] persisted to Genie backend');
-      } catch (err) {
-        // Don't fail the verification if backend persistence fails
-        console.error('[verify-proof] failed to persist to Genie backend:', err);
+      if (userId && typeof nullifierHash === 'string') {
+        await markVerified(userId, nullifierHash);
+        console.log('[verify-proof] persisted verification');
       }
+    } catch (err) {
+      // Don't fail the verification if persistence fails
+      console.error('[verify-proof] failed to persist verification:', err);
     }
 
     return NextResponse.json({ verifyRes, status: 200 });
